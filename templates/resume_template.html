@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.35;
+      margin: 36px;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    h2 {
+      font-size: 13px;
+      border-bottom: 1px solid #222;
+      margin-top: 14px;
+    }
+    ul {
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>{{ name }}</h1>
+  <div>{{ email }}{% if phone %} | {{ phone }}{% endif %} | {{ location }}{% if github %} | {{ github }}{% endif %}{% if portfolio %} | {{ portfolio }}{% endif %}</div>
+
+  <h2>Education</h2>
+  {% for edu in education %}
+  <div><strong>{{ edu.school }}</strong> — {{ edu.degree }}, {{ edu.graduation }}</div>
+  {% endfor %}
+
+  <h2>Skills</h2>
+  <div><strong>Proficient:</strong> {{ skills_strong | join(", ") }}</div>
+  {% if skills_familiar %}
+  <div><strong>Familiar:</strong> {{ skills_familiar | join(", ") }}</div>
+  {% endif %}
+
+  <h2>Projects</h2>
+  {% for project in projects %}
+  <div>
+    <strong>{{ project.name }}</strong>{% if project.role %} | {{ project.role }}{% endif %}{% if project.date_range %} | {{ project.date_range }}{% endif %}
+    <br />
+    <em>{{ project.stack | join(", ") }}</em>
+    <ul>
+      {% for bullet in project.bullets %}
+      <li>{{ bullet }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</body>
+</html>

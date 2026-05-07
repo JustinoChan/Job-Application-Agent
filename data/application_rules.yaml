@@ -1,0 +1,71 @@
+never_claim:
+  - internship experience
+  - paid work experience
+  - professional software engineering experience
+  - AWS production
+  - Kubernetes
+  - advanced ML research
+
+always_include_skills:
+  - Python
+  - Git
+
+preferred_project_order:
+  - capstone-archive
+  - search-engine
+
+min_fit_score_to_apply: 0.3
+
+keyword_synonyms:
+  React:
+    - React.js
+    - ReactJS
+    - React JS
+  JavaScript:
+    - JS
+    - ECMAScript
+    - ES6
+    - ES2015
+  TypeScript:
+    - TS
+  SQL:
+    - MySQL
+    - MySQL8
+    - PostgreSQL
+    - Postgres
+    - RDBMS
+    - SQLite
+    - databases
+    - database
+  Django:
+    - Django REST Framework
+    - Django REST API
+    - DRF
+  REST API:
+    - RESTful
+    - RESTful API
+    - REST
+    - RESTful APIs
+  Python:
+    - Python3
+    - Python 3
+  HTML:
+    - HTML5
+  CSS:
+    - CSS3
+    - SCSS
+    - Sass
+  MongoDB:
+    - Mongo
+  Firebase:
+    - Google Firebase
+    - Firebase Authentication
+  "Machine Learning":
+    - ML
+    - Deep Learning
+    - DL
+  Git:
+    - GitHub
+    - Version Control
+  "C++":
+    - CPP

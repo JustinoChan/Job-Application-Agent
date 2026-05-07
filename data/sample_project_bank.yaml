@@ -1,0 +1,91 @@
+projects:
+  - id: capstone-project
+    name: Capstone Web Application
+    role: Full-Stack Developer
+    date_range: Sep 2024 - Mar 2025
+    stack:
+      - React.js
+      - Django REST API
+      - MySQL8
+      - Firebase Authentication
+    description: A full-stack web application for hosting and browsing student capstone projects.
+    themes:
+      - full-stack
+      - backend
+      - frontend
+      - authentication
+      - web development
+      - databases
+    facts:
+      - id: capstone-fact-01
+        text: Built a full-stack web application using React.js frontend and Django REST API backend.
+        keywords:
+          - React
+          - Django
+          - REST API
+          - full-stack
+          - web development
+      - id: capstone-fact-02
+        text: Led frontend improvements and coordinated team development using agile practices.
+        keywords:
+          - frontend
+          - agile
+          - team leadership
+          - React
+      - id: capstone-fact-03
+        text: Integrated Firebase Authentication for secure user login and access control.
+        keywords:
+          - Firebase
+          - authentication
+          - security
+      - id: capstone-fact-04
+        text: Migrated from Firebase database to MySQL8 and Django REST API after requirements changed.
+        keywords:
+          - MySQL
+          - Django
+          - database migration
+          - SQL
+      - id: capstone-fact-05
+        text: Designed and implemented MySQL8 database schema for storing project metadata and team information.
+        keywords:
+          - MySQL
+          - SQL
+          - database design
+          - schema design
+
+  - id: search-engine
+    name: Search Engine
+    role: Developer
+    date_range: Jan 2025 - Mar 2025
+    stack:
+      - Python
+    description: A search engine that indexes and queries over 56,000 web pages.
+    themes:
+      - algorithms
+      - backend
+      - search
+      - performance
+      - Python
+      - data processing
+    facts:
+      - id: search-fact-01
+        text: Developed a search engine in Python capable of indexing and querying over 56,000 web pages.
+        keywords:
+          - Python
+          - search
+          - indexing
+          - information retrieval
+      - id: search-fact-02
+        text: Implemented tokenization, indexing, and query handling for efficient full-text search.
+        keywords:
+          - algorithms
+          - tokenization
+          - indexing
+          - search
+      - id: search-fact-03
+        text: Explored splitting token storage by first letter to improve lookup performance.
+        keywords:
+          - performance
+          - optimization
+          - data structures
+          - algorithms

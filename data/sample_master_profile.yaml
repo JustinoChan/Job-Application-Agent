@@ -1,0 +1,40 @@
+name: Your Name
+email: you@example.com
+location: City, ST
+
+education:
+  - school: University Name
+    degree: B.S. Computer Science
+    graduation: June 2025
+
+skills:
+  strong:
+    - Python
+    - React
+    - JavaScript
+    - TypeScript
+    - Django
+    - SQL
+    - HTML
+    - CSS
+    - Git
+    - REST API
+  familiar:
+    - Java
+    - C++
+    - Firebase
+    - MongoDB
+    - Linux
+
+constraints:
+  never_claim:
+    - professional software engineering internship
+    - paid industry software engineering experience
+    - AWS production experience unless explicitly added later
+    - Kubernetes experience unless explicitly added later
+    - advanced ML research experience
+  allowed_actions:
+    - reorder projects
+    - emphasize relevant truthful skills
+    - rewrite bullets
+    - create new bullets only from project_bank.yaml

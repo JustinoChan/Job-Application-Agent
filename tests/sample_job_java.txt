@@ -1,0 +1,21 @@
+Senior Java Developer | BigCorpInc
+
+Location: Remote
+
+About the Role
+We need an experienced Java developer to build and maintain enterprise microservices.
+
+Requirements
+- 5+ years of professional Java development experience
+- Strong experience with Spring Boot and Spring Framework
+- Production experience with Kubernetes and Docker
+- AWS services (EC2, S3, Lambda, RDS)
+- Experience with Apache Kafka or similar message queues
+- Production experience with PostgreSQL
+- CI/CD pipeline management (Jenkins, GitHub Actions)
+- Microservices architecture design
+
+Nice to Have
+- Experience with Terraform or CloudFormation
+- GraphQL API development
+- Performance tuning and profiling

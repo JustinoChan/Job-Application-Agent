@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project outputs (generated, not tracked)
+outputs/resumes/*.pdf
+outputs/resumes/*.md
+outputs/resumes/*.meta.json
+outputs/cover_letters/*
+outputs/audits/*
+jobs/raw/*
+jobs/tracker.csv
+
+# Keep directory structure
+!outputs/resumes/.gitkeep
+!outputs/cover_letters/.gitkeep
+!outputs/audits/.gitkeep
+!jobs/raw/.gitkeep
+
+# Privacy: real personal data (sample versions are committed instead)
+data/master_profile.yaml
+data/project_bank.yaml
+
+# Environment
+.env
+.claude

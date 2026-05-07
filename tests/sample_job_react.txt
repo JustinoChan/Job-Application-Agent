@@ -1,0 +1,29 @@
+Software Engineer - New Grad | ExampleCo
+
+Location: San Francisco, CA (Hybrid)
+
+About the Role
+We're looking for a new grad software engineer to join our web platform team. You'll work on building and maintaining our customer-facing web applications.
+
+Responsibilities
+- Build and maintain web applications using React and TypeScript
+- Design and implement RESTful APIs using Python and Django
+- Write clean, tested, and well-documented code
+- Collaborate with product and design teams
+- Participate in code reviews and technical discussions
+
+Requirements
+- Bachelor's degree in Computer Science, Software Engineering, or related field
+- Experience with React or similar frontend frameworks
+- Proficiency in Python
+- Experience with SQL databases
+- Strong understanding of web development fundamentals (HTML, CSS, JavaScript)
+- Familiarity with RESTful API design
+- Experience with version control (Git)
+
+Nice to Have
+- Experience with TypeScript
+- Experience with Django or Flask
+- Knowledge of cloud platforms (AWS, GCP, or Azure)
+- Experience with CI/CD pipelines
+- Knowledge of containerization (Docker, Kubernetes)
