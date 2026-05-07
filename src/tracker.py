@@ -23,6 +23,7 @@ TRACKER_COLUMNS = [
     "resume_path",
     "cover_letter_path",
     "audit_verdict",
+    "latest_resume_version",
     "notes",
     "next_action",
     "date_updated",
@@ -59,6 +60,8 @@ def update_status(
     notes: str | None = None,
     resume_path: str | None = None,
     audit_verdict: str | None = None,
+    latest_resume_version: int | None = None,
+    fit_score: float | None = None,
 ) -> bool:
     if not tracker_path.exists():
         return False
@@ -77,6 +80,10 @@ def update_status(
                     row["resume_path"] = resume_path
                 if audit_verdict:
                     row["audit_verdict"] = audit_verdict
+                if latest_resume_version is not None:
+                    row["latest_resume_version"] = str(latest_resume_version)
+                if fit_score is not None:
+                    row["fit_score"] = str(fit_score)
                 found = True
             rows.append(row)
 
@@ -87,6 +94,17 @@ def update_status(
             writer.writerows(rows)
 
     return found
+
+
+def job_id_exists(tracker_path: Path, job_id: str) -> bool:
+    if not tracker_path.exists():
+        return False
+    with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row["job_id"] == job_id:
+                return True
+    return False
 
 
 def get_entry(tracker_path: Path, job_id: str) -> TrackerEntry | None:
@@ -140,6 +158,7 @@ def print_tracker(entries: list[TrackerEntry]) -> None:
     table.add_column("Status")
     table.add_column("Fit", justify="right")
     table.add_column("Audit")
+    table.add_column("Ver", justify="right")
     table.add_column("Date Added")
 
     status_styles = {
@@ -158,6 +177,7 @@ def print_tracker(entries: list[TrackerEntry]) -> None:
         style = status_styles.get(e.status.value, "")
         fit_str = f"{e.fit_score:.0%}" if e.fit_score is not None else "-"
         audit_str = e.audit_verdict or "-"
+        ver_str = str(e.latest_resume_version) if e.latest_resume_version is not None else "-"
         table.add_row(
             e.job_id,
             e.company,
@@ -165,6 +185,7 @@ def print_tracker(entries: list[TrackerEntry]) -> None:
             f"[{style}]{e.status.value}[/{style}]" if style else e.status.value,
             fit_str,
             audit_str,
+            ver_str,
             e.date_added.isoformat(),
         )
 
@@ -183,6 +204,7 @@ def _entry_to_row(entry: TrackerEntry) -> dict:
         "resume_path": entry.resume_path or "",
         "cover_letter_path": entry.cover_letter_path or "",
         "audit_verdict": entry.audit_verdict or "",
+        "latest_resume_version": str(entry.latest_resume_version) if entry.latest_resume_version is not None else "",
         "notes": entry.notes or "",
         "next_action": entry.next_action or "",
         "date_updated": entry.date_updated.isoformat(),
@@ -191,6 +213,7 @@ def _entry_to_row(entry: TrackerEntry) -> dict:
 
 def _row_to_entry(row: dict) -> TrackerEntry:
     fit = row.get("fit_score", "")
+    ver = row.get("latest_resume_version", "")
     return TrackerEntry(
         job_id=row["job_id"],
         date_added=date.fromisoformat(row["date_added"]),
@@ -202,6 +225,7 @@ def _row_to_entry(row: dict) -> TrackerEntry:
         resume_path=row.get("resume_path") or None,
         cover_letter_path=row.get("cover_letter_path") or None,
         audit_verdict=row.get("audit_verdict") or None,
+        latest_resume_version=int(ver) if ver else None,
         notes=row.get("notes") or None,
         next_action=row.get("next_action") or None,
         date_updated=date.fromisoformat(row.get("date_updated", date.today().isoformat())),

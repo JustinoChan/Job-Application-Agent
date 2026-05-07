@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import json
-import re
-from datetime import datetime
 from pathlib import Path
 
+from src import config
 from src.models import (
     ApplicationRules,
     FitScore,
@@ -209,23 +207,14 @@ def render_resume_markdown(tailored: TailoredResume, profile: MasterProfile) -> 
     return "\n".join(lines)
 
 
-def save_resume(markdown: str, job: JobPosting, output_dir: Path) -> Path:
-    slug = _slugify(f"{job.company}_{job.title}")
-    date_str = datetime.now().strftime("%Y%m%d")
-    filename = f"{slug}_{date_str}.md"
-    path = output_dir / filename
-    path.write_text(markdown, encoding="utf-8")
-    return path
+def save_resume(markdown: str, job_id: str, version: int) -> Path:
+    paths = config.version_paths(job_id, version)
+    paths["dir"].mkdir(parents=True, exist_ok=True)
+    paths["md"].write_text(markdown, encoding="utf-8")
+    return paths["md"]
 
 
-def save_resume_metadata(tailored: TailoredResume, resume_path: Path) -> Path:
-    meta_path = resume_path.with_suffix(".meta.json")
-    meta_path.write_text(tailored.model_dump_json(indent=2), encoding="utf-8")
-    return meta_path
-
-
-def _slugify(text: str) -> str:
-    text = text.lower().strip()
-    text = re.sub(r"[^\w\s-]", "", text)
-    text = re.sub(r"[\s_]+", "_", text)
-    return text[:60]
+def save_resume_metadata(tailored: TailoredResume, job_id: str, version: int) -> Path:
+    paths = config.version_paths(job_id, version)
+    paths["meta"].write_text(tailored.model_dump_json(indent=2), encoding="utf-8")
+    return paths["meta"]

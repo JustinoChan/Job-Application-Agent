@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import yaml
@@ -18,8 +19,8 @@ JOBS_RAW_DIR = JOBS_DIR / "raw"
 OUTPUTS_DIR = BASE_DIR / "outputs"
 RESUMES_DIR = OUTPUTS_DIR / "resumes"
 COVER_LETTERS_DIR = OUTPUTS_DIR / "cover_letters"
-AUDITS_DIR = OUTPUTS_DIR / "audits"
 TEMPLATES_DIR = BASE_DIR / "templates"
+RESUME_TEMPLATE_PATH = TEMPLATES_DIR / "resume_template.html"
 
 MASTER_PROFILE_PATH = DATA_DIR / "master_profile.yaml"
 PROJECT_BANK_PATH = DATA_DIR / "project_bank.yaml"
@@ -30,8 +31,40 @@ TRACKER_PATH = JOBS_DIR / "tracker.csv"
 
 
 def ensure_directories() -> None:
-    for d in [JOBS_RAW_DIR, RESUMES_DIR, COVER_LETTERS_DIR, AUDITS_DIR]:
+    for d in [JOBS_RAW_DIR, RESUMES_DIR, COVER_LETTERS_DIR]:
         d.mkdir(parents=True, exist_ok=True)
+
+
+def job_resume_dir(job_id: str) -> Path:
+    return RESUMES_DIR / job_id
+
+
+def next_resume_version(job_id: str) -> int:
+    job_dir = job_resume_dir(job_id)
+    if not job_dir.exists():
+        return 1
+    existing = list(job_dir.glob("resume_v*.md"))
+    if not existing:
+        return 1
+    versions = []
+    for f in existing:
+        match = re.search(r"resume_v(\d+)\.md$", f.name)
+        if match:
+            versions.append(int(match.group(1)))
+    return max(versions) + 1 if versions else 1
+
+
+def version_paths(job_id: str, version: int) -> dict[str, Path]:
+    d = job_resume_dir(job_id)
+    v = f"v{version:03d}"
+    return {
+        "dir": d,
+        "md": d / f"resume_{v}.md",
+        "meta": d / f"resume_{v}.meta.json",
+        "audit": d / f"resume_{v}.audit.json",
+        "html": d / f"resume_{v}.html",
+        "pdf": d / f"resume_{v}.pdf",
+    }
 
 
 def load_yaml(path: Path) -> dict:

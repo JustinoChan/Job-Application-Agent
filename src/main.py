@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import json
 import sys
 from datetime import date
 from pathlib import Path
@@ -10,8 +12,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from src import claim_auditor, config, fit_scorer, job_parser, resume_tailor, tracker
-from src.models import AuditVerdict, TrackerEntry, TrackerStatus
+from src import claim_auditor, config, fit_scorer, job_parser, pdf_renderer, resume_tailor, tracker
+from src.models import AuditVerdict, TailoredResume, TrackerEntry, TrackerStatus
 
 app = typer.Typer(
     name="job-agent",
@@ -92,21 +94,25 @@ def ingest_job(
 
     job_id = tracker.generate_job_id(job.company, job.title)
 
-    raw_path = config.JOBS_RAW_DIR / f"{job_id}.txt"
-    raw_path.write_text(raw_text, encoding="utf-8")
+    if tracker.job_id_exists(config.TRACKER_PATH, job_id):
+        console.print(f"[yellow]Job '{job_id}' already exists in tracker. Skipping duplicate entry.[/yellow]")
+    else:
+        raw_path = config.JOBS_RAW_DIR / f"{job_id}.txt"
+        raw_path.write_text(raw_text, encoding="utf-8")
 
-    entry = TrackerEntry(
-        job_id=job_id,
-        date_added=date.today(),
-        company=job.company,
-        role=job.title,
-        url=url,
-        status=TrackerStatus.FOUND,
-    )
-    tracker.add_entry(config.TRACKER_PATH, entry)
+        entry = TrackerEntry(
+            job_id=job_id,
+            date_added=date.today(),
+            company=job.company,
+            role=job.title,
+            url=url,
+            status=TrackerStatus.FOUND,
+        )
+        tracker.add_entry(config.TRACKER_PATH, entry)
 
-    console.print(f"[green]Saved job as:[/green] {job_id}")
-    console.print(f"[green]Raw text:[/green] {raw_path}")
+        console.print(f"[green]Saved job as:[/green] {job_id}")
+        console.print(f"[green]Raw text:[/green] {raw_path}")
+
     console.print(f"\nRun [bold]python -m src.main tailor {job_id}[/bold] to generate a tailored resume.")
 
 
@@ -144,7 +150,6 @@ def tailor(
         company_override=company_override, title_override=title_override,
     )
 
-    # Score fit
     fit = fit_scorer.score_fit(job, profile, projects, rules)
 
     console.print()
@@ -153,50 +158,60 @@ def tailor(
     if fit.recommendation == "skip":
         console.print("[yellow]Fit score is below threshold. Consider skipping this job.[/yellow]")
 
-    # Tailor resume
     tailored = resume_tailor.tailor_resume(
         job, fit, profile, projects, resume_config, rules
     )
 
+    version = config.next_resume_version(job_id)
+
     md = resume_tailor.render_resume_markdown(tailored, profile)
-    resume_path = resume_tailor.save_resume(md, job, config.RESUMES_DIR)
-    resume_tailor.save_resume_metadata(tailored, resume_path)
+    resume_path = resume_tailor.save_resume(md, job_id, version)
+    resume_tailor.save_resume_metadata(tailored, job_id, version)
 
     console.print(f"[green]Resume saved:[/green] {resume_path}")
 
-    # Auto-audit
     report = claim_auditor.audit_resume(tailored, projects, profile, rules)
     claim_auditor.print_audit_report(report)
 
-    audit_path = claim_auditor.save_audit_report(
-        report, job.company, job.title, config.AUDITS_DIR
-    )
+    audit_path = claim_auditor.save_audit_report(report, job_id, version)
     console.print(f"[green]Audit saved:[/green] {audit_path}")
 
-    # Update tracker
     tracker.update_status(
         config.TRACKER_PATH,
         job_id,
         TrackerStatus.PREPARED,
         resume_path=str(resume_path),
         audit_verdict=report.overall_verdict.value,
+        latest_resume_version=version,
+        fit_score=fit.overall_score,
     )
 
     if report.overall_verdict == AuditVerdict.FAIL:
         console.print("[bold red]Audit FAILED. Review the resume before proceeding.[/bold red]")
     else:
-        console.print("[bold green]Resume prepared and audit passed.[/bold green]")
+        console.print(f"[bold green]Resume v{version:03d} prepared and audit passed.[/bold green]")
 
 
 @app.command()
 def audit(
-    resume_path: Path = typer.Argument(help="Path to a tailored resume .meta.json or .md file"),
+    job_id: str = typer.Argument(help="Job ID from the tracker, or path to a .meta.json file"),
+    version: Optional[int] = typer.Option(None, "--version", "-v", help="Resume version number (default: latest)"),
 ) -> None:
     """Run truth audit on a previously generated resume."""
-    import json
-    from src.models import TailoredResume
+    meta_path: Path
 
-    meta_path = resume_path.with_suffix(".meta.json") if resume_path.suffix == ".md" else resume_path
+    if Path(job_id).suffix in (".json", ".md"):
+        p = Path(job_id)
+        meta_path = p.with_suffix(".meta.json") if p.suffix == ".md" else p
+    else:
+        if version is None:
+            version = config.next_resume_version(job_id) - 1
+            if version < 1:
+                console.print(f"[red]No resume versions found for job '{job_id}'.[/red]")
+                raise typer.Exit(1)
+        paths = config.version_paths(job_id, version)
+        meta_path = paths["meta"]
+
     if not meta_path.exists():
         console.print(f"[red]Metadata file not found: {meta_path}[/red]")
         console.print("[dim]The audit command requires the .meta.json sidecar file.[/dim]")
@@ -214,11 +229,51 @@ def audit(
 
 @app.command()
 def render_pdf(
-    resume_path: Path = typer.Argument(help="Path to resume markdown file"),
+    job_id: str = typer.Argument(help="Job ID from the tracker"),
+    version: Optional[int] = typer.Option(None, "--version", "-v", help="Resume version (default: latest)"),
+    allow_warn: bool = typer.Option(False, "--allow-warn", help="Proceed even if audit has warnings"),
 ) -> None:
-    """Render markdown/HTML resume to PDF. (v0.2)"""
-    console.print("[yellow]PDF rendering is not yet implemented (coming in v0.2).[/yellow]")
-    raise typer.Exit(1)
+    """Render a tailored resume to HTML and PDF."""
+    if version is None:
+        version = config.next_resume_version(job_id) - 1
+        if version < 1:
+            console.print(f"[red]No resume versions found for job '{job_id}'.[/red]")
+            raise typer.Exit(1)
+
+    paths = config.version_paths(job_id, version)
+    meta_path = paths["meta"]
+
+    if not meta_path.exists():
+        console.print(f"[red]Metadata not found: {meta_path}[/red]")
+        raise typer.Exit(1)
+
+    tailored = TailoredResume.model_validate_json(meta_path.read_text(encoding="utf-8"))
+
+    profile = config.load_profile()
+    projects = config.load_projects()
+    rules = config.load_rules()
+
+    report = claim_auditor.audit_resume(tailored, projects, profile, rules)
+    claim_auditor.print_audit_report(report)
+
+    if report.overall_verdict == AuditVerdict.FAIL:
+        console.print("[bold red]Audit FAILED. PDF generation blocked.[/bold red]")
+        console.print("[dim]Fix the resume and re-run the tailor command first.[/dim]")
+        raise typer.Exit(1)
+
+    if report.overall_verdict == AuditVerdict.WARN and not allow_warn:
+        console.print("[bold yellow]Audit has warnings. Use --allow-warn to proceed.[/bold yellow]")
+        raise typer.Exit(1)
+
+    html = pdf_renderer.render_html(tailored, profile)
+    html_path = pdf_renderer.save_html(html, job_id, version)
+    console.print(f"[green]HTML saved:[/green] {html_path}")
+
+    pdf_path = paths["pdf"]
+    asyncio.run(pdf_renderer.render_pdf(html_path, pdf_path))
+    console.print(f"[green]PDF saved:[/green] {pdf_path}")
+
+    console.print(f"\n[bold green]Resume v{version:03d} rendered successfully.[/bold green]")
 
 
 @app.command()
@@ -276,7 +331,6 @@ def pipeline(
     rules = config.load_rules()
     resume_config = config.load_resume_config()
 
-    # 1. Ingest
     raw_text = _read_job_text(file)
     if not raw_text:
         console.print("[red]No job description provided.[/red]")
@@ -299,45 +353,55 @@ def pipeline(
     raw_path = config.JOBS_RAW_DIR / f"{job_id}.txt"
     raw_path.write_text(raw_text, encoding="utf-8")
 
-    # 2. Score
     fit = fit_scorer.score_fit(job, profile, projects, rules)
     _print_fit_score(fit, job)
 
-    # 3. Tailor
     tailored = resume_tailor.tailor_resume(
         job, fit, profile, projects, resume_config, rules
     )
+
+    version = config.next_resume_version(job_id)
+
     md = resume_tailor.render_resume_markdown(tailored, profile)
-    resume_path = resume_tailor.save_resume(md, job, config.RESUMES_DIR)
-    resume_tailor.save_resume_metadata(tailored, resume_path)
+    resume_path = resume_tailor.save_resume(md, job_id, version)
+    resume_tailor.save_resume_metadata(tailored, job_id, version)
 
     console.print(f"[green]Resume saved:[/green] {resume_path}")
 
-    # 4. Audit
     report = claim_auditor.audit_resume(tailored, projects, profile, rules)
     claim_auditor.print_audit_report(report)
-    audit_path = claim_auditor.save_audit_report(
-        report, job.company, job.title, config.AUDITS_DIR
-    )
+    audit_path = claim_auditor.save_audit_report(report, job_id, version)
 
-    # 5. Track
-    entry = TrackerEntry(
-        job_id=job_id,
-        date_added=date.today(),
-        company=job.company,
-        role=job.title,
-        url=url,
-        status=TrackerStatus.PREPARED,
-        fit_score=fit.overall_score,
-        resume_path=str(resume_path),
-        audit_verdict=report.overall_verdict.value,
-    )
-    tracker.add_entry(config.TRACKER_PATH, entry)
+    is_existing = tracker.job_id_exists(config.TRACKER_PATH, job_id)
+    if is_existing:
+        tracker.update_status(
+            config.TRACKER_PATH,
+            job_id,
+            TrackerStatus.PREPARED,
+            resume_path=str(resume_path),
+            audit_verdict=report.overall_verdict.value,
+            latest_resume_version=version,
+            fit_score=fit.overall_score,
+        )
+    else:
+        entry = TrackerEntry(
+            job_id=job_id,
+            date_added=date.today(),
+            company=job.company,
+            role=job.title,
+            url=url,
+            status=TrackerStatus.PREPARED,
+            fit_score=fit.overall_score,
+            resume_path=str(resume_path),
+            audit_verdict=report.overall_verdict.value,
+            latest_resume_version=version,
+        )
+        tracker.add_entry(config.TRACKER_PATH, entry)
 
-    # Summary
     console.print()
     console.rule("[bold]Pipeline Complete[/bold]")
     console.print(f"Job ID:      {job_id}")
+    console.print(f"Version:     v{version:03d}")
     console.print(f"Fit:         {fit.recommendation} ({fit.overall_score:.0%})")
     console.print(f"Audit:       {report.overall_verdict.value}")
     console.print(f"Resume:      {resume_path}")
@@ -347,6 +411,7 @@ def pipeline(
         console.print("\n[bold red]Audit FAILED. Review before proceeding.[/bold red]")
     else:
         console.print("\n[bold green]Ready for review.[/bold green]")
+        console.print(f"Run [bold]python -m src.main render-pdf {job_id}[/bold] to generate PDF.")
 
 
 def _print_fit_score(fit, job) -> None:

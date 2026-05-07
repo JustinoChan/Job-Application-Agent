@@ -161,13 +161,12 @@ def _text_similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a.strip(), b.strip()).ratio()
 
 
-def save_audit_report(report: AuditReport, job_company: str, job_title: str, output_dir: Path) -> Path:
-    date_str = datetime.now().strftime("%Y%m%d")
-    slug = f"{job_company}_{job_title}".lower().replace(" ", "_")[:40]
-    filename = f"audit_{slug}_{date_str}.json"
-    path = output_dir / filename
-    path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
-    return path
+def save_audit_report(report: AuditReport, job_id: str, version: int) -> Path:
+    from src import config
+    paths = config.version_paths(job_id, version)
+    paths["dir"].mkdir(parents=True, exist_ok=True)
+    paths["audit"].write_text(report.model_dump_json(indent=2), encoding="utf-8")
+    return paths["audit"]
 
 
 def print_audit_report(report: AuditReport) -> None:

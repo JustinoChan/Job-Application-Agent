@@ -20,10 +20,13 @@ Job Description (pasted text or file)
   Claim Auditor ──► verify every bullet against YAML source data
         │
         ▼
-  Output: tailored resume (Markdown) + audit report + tracker row
+  PDF Renderer ──► HTML via Jinja2, PDF via Playwright Chromium
+        │
+        ▼
+  Output: versioned resume (MD + HTML + PDF) + audit report + tracker row
 ```
 
-The key constraint: the model can only select and rewrite from approved facts stored in `project_bank.yaml`. It cannot invent companies, titles, internships, metrics, or technologies.
+The key constraint: the system can only select and reorder from approved facts stored in `project_bank.yaml`. It cannot invent companies, titles, internships, metrics, or technologies.
 
 ## Project Structure
 
@@ -40,11 +43,16 @@ job-application-agent/
     raw/                     # saved job descriptions
     tracker.csv              # application tracker (gitignored)
   outputs/
-    resumes/                 # generated resume markdown + metadata
-    cover_letters/           # (v0.2)
-    audits/                  # audit report JSON files
+    resumes/
+      {job-id}/              # per-job versioned folder
+        resume_v001.md       # tailored markdown
+        resume_v001.meta.json  # structured metadata
+        resume_v001.audit.json # truth audit report
+        resume_v001.html     # rendered HTML
+        resume_v001.pdf      # final PDF
+    cover_letters/           # (future)
   templates/
-    resume_template.html     # Jinja2 HTML template (for v0.2 PDF)
+    resume_template.html     # Jinja2 HTML template for PDF
   src/
     main.py                  # Typer CLI
     models.py                # Pydantic data models
@@ -53,8 +61,8 @@ job-application-agent/
     fit_scorer.py            # candidate fit scoring
     resume_tailor.py         # project/skill selection and markdown generation
     claim_auditor.py         # truth verification gate
+    pdf_renderer.py          # HTML + PDF rendering via Jinja2/Playwright
     tracker.py               # CSV tracker operations
-    pdf_renderer.py          # stub (v0.2)
     browser_apply.py         # stub (v0.3)
   skills/
     job-apply-assist/
@@ -76,7 +84,10 @@ python -m venv .venv
 # macOS/Linux
 source .venv/bin/activate
 
-pip install typer pydantic pyyaml rich jinja2
+pip install -e .
+
+# Install Playwright's Chromium browser for PDF generation
+playwright install chromium
 ```
 
 ### Configure Your Profile
@@ -100,17 +111,42 @@ Run ingest, scoring, tailoring, and audit in one command:
 python -m src.main pipeline --file job_description.txt --company "ExampleCo" --title "Software Engineer"
 ```
 
+Then generate the PDF:
+
+```bash
+python -m src.main render-pdf exampleco-software-engineer-20260506
+```
+
+### Resume Versioning
+
+Each time you run `tailor` or `pipeline` for the same job, a new version is created without overwriting previous ones:
+
+```
+outputs/resumes/exampleco-software-engineer-20260506/
+  resume_v001.md
+  resume_v001.meta.json
+  resume_v001.audit.json
+  resume_v002.md        # second run
+  resume_v002.meta.json
+  resume_v002.audit.json
+```
+
 ### Individual Commands
 
 ```bash
 # Ingest a job description
 python -m src.main ingest-job --file job_description.txt --company "ExampleCo" --title "SWE"
 
-# Tailor resume for a tracked job
+# Tailor resume for a tracked job (creates new version each run)
 python -m src.main tailor <job-id>
 
 # Run standalone truth audit
-python -m src.main audit outputs/resumes/exampleco_swe_20260506.md
+python -m src.main audit <job-id>
+python -m src.main audit <job-id> --version 1
+
+# Render PDF (runs audit gate first)
+python -m src.main render-pdf <job-id>
+python -m src.main render-pdf <job-id> --version 1 --allow-warn
 
 # Update application status
 python -m src.main log <job-id> submitted --notes "Applied via website"
@@ -173,11 +209,15 @@ The claim auditor is a required gate. Every resume bullet must trace back to an 
 
 Hard constraints (defined in `application_rules.yaml`) prevent claiming things like professional internship experience, AWS production deployment, or other unsupported credentials.
 
+The `render-pdf` command re-runs the audit before generating a PDF. If the audit fails, PDF generation is blocked. Warnings block by default unless `--allow-warn` is passed.
+
 ## Tracker
 
 Applications are tracked in `jobs/tracker.csv` with statuses:
 
 `found` → `prepared` → `reviewed` → `submitted` → `interview` / `assessment` / `rejected` / `offer` / `ghosted`
+
+The tracker also records the latest resume version number for each job.
 
 ## Tests
 
@@ -188,8 +228,8 @@ python -m pytest tests/ -v
 
 ## Roadmap
 
-- **v0.1** (current): CLI pipeline with fit scoring, resume tailoring, truth audit, CSV tracker
-- **v0.2**: PDF generation via Playwright, resume versioning, cover letter support
+- **v0.1**: CLI pipeline with fit scoring, resume tailoring, truth audit, CSV tracker
+- **v0.2** (current): PDF generation via Playwright, per-job resume versioning, audit gate for PDF
 - **v0.3**: Browser form filling with Playwright (pause before submit)
 - **v0.4**: OpenClaw integration as a chat-driven workflow
 
