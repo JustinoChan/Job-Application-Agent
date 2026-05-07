@@ -149,6 +149,24 @@ class TailoredResume(BaseModel):
     output_path: Optional[str] = None
 
 
+class PipelineResult(BaseModel):
+    job_id: str
+    job: JobPosting
+    fit: FitScore
+    tailored: TailoredResume
+    report: "AuditReport"
+    resume_md: str
+    resume_html: str
+
+
+class ConfirmResult(BaseModel):
+    job_id: str
+    version: int
+    resume_path: str
+    audit_verdict: str
+    message: str
+
+
 # ── Audit Models ─────────────────────────────────────────────────
 
 
@@ -191,6 +209,7 @@ class TrackerStatus(str, Enum):
     ASSESSMENT = "assessment"
     OFFER = "offer"
     GHOSTED = "ghosted"
+    ARCHIVED = "archived"
 
 
 class TrackerEntry(BaseModel):

@@ -8,6 +8,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
+from src.filelock import tracker_lock
 from src.models import TrackerEntry, TrackerStatus
 
 console = Console()
@@ -31,6 +32,11 @@ TRACKER_COLUMNS = [
 
 
 def ensure_tracker_exists(tracker_path: Path) -> None:
+    with tracker_lock():
+        _ensure_tracker_exists_unlocked(tracker_path)
+
+
+def _ensure_tracker_exists_unlocked(tracker_path: Path) -> None:
     tracker_path.parent.mkdir(parents=True, exist_ok=True)
     if not tracker_path.exists():
         with open(tracker_path, "w", newline="", encoding="utf-8") as f:
@@ -47,10 +53,11 @@ def generate_job_id(company: str, title: str) -> str:
 
 
 def add_entry(tracker_path: Path, entry: TrackerEntry) -> None:
-    ensure_tracker_exists(tracker_path)
-    with open(tracker_path, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
-        writer.writerow(_entry_to_row(entry))
+    with tracker_lock():
+        _ensure_tracker_exists_unlocked(tracker_path)
+        with open(tracker_path, "a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
+            writer.writerow(_entry_to_row(entry))
 
 
 def update_status(
@@ -63,87 +70,92 @@ def update_status(
     latest_resume_version: int | None = None,
     fit_score: float | None = None,
 ) -> bool:
-    if not tracker_path.exists():
-        return False
+    with tracker_lock():
+        if not tracker_path.exists():
+            return False
 
-    rows: list[dict] = []
-    found = False
-    with open(tracker_path, "r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if row["job_id"] == job_id:
-                row["status"] = new_status.value
-                row["date_updated"] = date.today().isoformat()
-                if notes:
-                    row["notes"] = notes
-                if resume_path:
-                    row["resume_path"] = resume_path
-                if audit_verdict:
-                    row["audit_verdict"] = audit_verdict
-                if latest_resume_version is not None:
-                    row["latest_resume_version"] = str(latest_resume_version)
-                if fit_score is not None:
-                    row["fit_score"] = str(fit_score)
-                found = True
-            rows.append(row)
+        rows: list[dict] = []
+        found = False
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["job_id"] == job_id:
+                    row["status"] = new_status.value
+                    row["date_updated"] = date.today().isoformat()
+                    if notes is not None:
+                        row["notes"] = notes
+                    if resume_path:
+                        row["resume_path"] = resume_path
+                    if audit_verdict:
+                        row["audit_verdict"] = audit_verdict
+                    if latest_resume_version is not None:
+                        row["latest_resume_version"] = str(latest_resume_version)
+                    if fit_score is not None:
+                        row["fit_score"] = str(fit_score)
+                    found = True
+                rows.append(row)
 
-    if found:
-        with open(tracker_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
-            writer.writeheader()
-            writer.writerows(rows)
+        if found:
+            with open(tracker_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
+                writer.writeheader()
+                writer.writerows(rows)
 
-    return found
+        return found
 
 
 def job_id_exists(tracker_path: Path, job_id: str) -> bool:
-    if not tracker_path.exists():
+    with tracker_lock():
+        if not tracker_path.exists():
+            return False
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["job_id"] == job_id:
+                    return True
         return False
-    with open(tracker_path, "r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if row["job_id"] == job_id:
-                return True
-    return False
 
 
 def get_entry(tracker_path: Path, job_id: str) -> TrackerEntry | None:
-    if not tracker_path.exists():
+    with tracker_lock():
+        if not tracker_path.exists():
+            return None
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["job_id"] == job_id:
+                    return _row_to_entry(row)
         return None
-    with open(tracker_path, "r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if row["job_id"] == job_id:
-                return _row_to_entry(row)
-    return None
 
 
 def get_latest_entry(tracker_path: Path) -> TrackerEntry | None:
-    if not tracker_path.exists():
+    with tracker_lock():
+        if not tracker_path.exists():
+            return None
+        last_row = None
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                last_row = row
+        if last_row:
+            return _row_to_entry(last_row)
         return None
-    last_row = None
-    with open(tracker_path, "r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            last_row = row
-    if last_row:
-        return _row_to_entry(last_row)
-    return None
 
 
 def list_entries(
     tracker_path: Path, status_filter: TrackerStatus | None = None
 ) -> list[TrackerEntry]:
-    if not tracker_path.exists():
-        return []
-    entries: list[TrackerEntry] = []
-    with open(tracker_path, "r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            entry = _row_to_entry(row)
-            if status_filter is None or entry.status == status_filter:
-                entries.append(entry)
-    return entries
+    with tracker_lock():
+        if not tracker_path.exists():
+            return []
+        entries: list[TrackerEntry] = []
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                entry = _row_to_entry(row)
+                if status_filter is None or entry.status == status_filter:
+                    entries.append(entry)
+        return entries
 
 
 def print_tracker(entries: list[TrackerEntry]) -> None:
@@ -171,6 +183,7 @@ def print_tracker(entries: list[TrackerEntry]) -> None:
         "assessment": "bold cyan",
         "offer": "bold magenta",
         "ghosted": "dim red",
+        "archived": "dim",
     }
 
     for e in entries:

@@ -62,8 +62,17 @@ job-application-agent/
     resume_tailor.py         # project/skill selection and markdown generation
     claim_auditor.py         # truth verification gate
     pdf_renderer.py          # HTML + PDF rendering via Jinja2/Playwright
+    pipeline.py              # shared CLI/API orchestration
+    job_scraper.py           # safe URL fetch + optional AI extraction
+    filelock.py              # tracker/version file locks
     tracker.py               # CSV tracker operations
-    browser_apply.py         # stub (v0.3)
+    browser_apply.py         # stub (future)
+  server/
+    app.py                   # FastAPI app
+    auth.py                  # token / Cloudflare Access auth
+    routers/                 # applications + dashboard endpoints
+  web/
+    src/                     # React + Vite dashboard
   skills/
     job-apply-assist/
       SKILL.md               # OpenClaw skill definition
@@ -89,6 +98,26 @@ pip install -e .
 # Install Playwright's Chromium browser for PDF generation
 playwright install chromium
 ```
+
+### Web Dashboard Setup
+
+The dashboard is optional. It runs as a React/Vite frontend talking to a local FastAPI backend.
+
+```bash
+# Backend
+copy .env.example .env
+# edit .env and set API_TOKEN or AUTH_MODE=none for local-only testing
+uvicorn server.app:app --reload --port 8000
+
+# Frontend
+cd web
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+For deployment, host `web/dist` on Cloudflare Pages and expose the local FastAPI backend with Cloudflare Tunnel. Protect the API hostname with Cloudflare Access. Do not rely on `VITE_API_TOKEN` as production security because Vite exposes frontend env vars in the browser bundle.
 
 ### Configure Your Profile
 
@@ -156,6 +185,18 @@ python -m src.main status
 python -m src.main status --filter interview
 ```
 
+## Web/API Flow
+
+The web dashboard supports:
+
+1. Fetch a job URL or paste job text.
+2. Review/edit extracted job text.
+3. Preview fit score, resume HTML, and audit report without disk writes.
+4. Confirm save to create versioned artifacts and update `jobs/tracker.csv`.
+5. Open a job detail page to preview the resume, download the PDF, view audit entries, and update status.
+
+The confirm step uses the exact reviewed text from preview. It does not re-scrape the URL.
+
 ### Interactive Mode
 
 Run without `--file` to paste a job description directly:
@@ -215,7 +256,7 @@ The `render-pdf` command re-runs the audit before generating a PDF. If the audit
 
 Applications are tracked in `jobs/tracker.csv` with statuses:
 
-`found` → `prepared` → `reviewed` → `submitted` → `interview` / `assessment` / `rejected` / `offer` / `ghosted`
+`found` -> `prepared` -> `reviewed` -> `submitted` -> `interview` / `assessment` / `rejected` / `offer` / `ghosted` / `archived`
 
 The tracker also records the latest resume version number for each job.
 
@@ -224,14 +265,18 @@ The tracker also records the latest resume version number for each job.
 ```bash
 pip install pytest
 python -m pytest tests/ -v
+
+# If Windows temp permissions get cranky:
+python -m pytest tests/ -v --basetemp .pytest_tmp_run
 ```
 
 ## Roadmap
 
 - **v0.1**: CLI pipeline with fit scoring, resume tailoring, truth audit, CSV tracker
-- **v0.2** (current): PDF generation via Playwright, per-job resume versioning, audit gate for PDF
-- **v0.3**: Browser form filling with Playwright (pause before submit)
-- **v0.4**: OpenClaw integration as a chat-driven workflow
+- **v0.2**: PDF generation via Playwright, per-job resume versioning, audit gate for PDF
+- **v0.3** (current): React dashboard, FastAPI backend, safe URL scraping, preview/confirm workflow
+- **v0.4**: Browser form filling with Playwright (pause before submit)
+- **v0.5**: OpenClaw integration as a chat-driven workflow
 
 ## License
 

@@ -25,9 +25,18 @@ Thumbs.db
 
 # Project outputs (generated, not tracked)
 outputs/resumes/*/
+outputs/resumes/*.md
+outputs/resumes/*.meta.json
+outputs/audits/
 outputs/cover_letters/*
 jobs/raw/*
 jobs/tracker.csv
+jobs/*.lock
+web/node_modules/
+web/dist/
+web/tsconfig.tsbuildinfo
+.pytest_cache/
+.pytest_tmp*/
 
 # Keep directory structure
 !outputs/resumes/.gitkeep
@@ -40,4 +49,5 @@ data/project_bank.yaml
 
 # Environment
 .env
+.env.local
 .claude
