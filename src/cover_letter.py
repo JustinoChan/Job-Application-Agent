@@ -61,6 +61,18 @@ GENERIC_SENTENCE_HINTS = {
     "company", "team", "hiring",
 }
 
+GENERIC_COVER_LETTER_PATTERNS = [
+    r"\b(i am|i'm|i\u2019m|i\?m)\s+excited\b",
+    r"\b(i am|i'm|i\u2019m|i\?m)\s+(especially\s+)?interested\b",
+    r"\bthank you\b",
+    r"\bsincerely\b",
+    r"\bi would bring\b",
+    r"\bi am applying\b",
+    r"\bto apply for\b",
+    r"\bproject work has given me hands-on experience\b",
+    r"\bthese experiences have helped me develop\b",
+]
+
 
 class CoverLetterGenerationError(RuntimeError):
     pass
@@ -316,6 +328,9 @@ def _is_claim_sentence(sentence: str) -> bool:
 
 
 def _is_generic_sentence(sentence: str) -> bool:
+    lower = sentence.lower()
+    if any(re.search(pattern, lower) for pattern in GENERIC_COVER_LETTER_PATTERNS):
+        return True
     tokens = _tokens(sentence)
     return bool(tokens) and tokens <= GENERIC_SENTENCE_HINTS
 
