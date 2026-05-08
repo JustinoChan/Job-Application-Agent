@@ -133,14 +133,25 @@ class TestAuditCoverLetter:
         assert report.overall_verdict == AuditVerdict.FAIL
         assert any("weak overlap" in e.reason for e in report.entries)
 
+    def test_audits_project_claim_without_first_person(self, sample_profile, sample_projects, sample_rules, sample_job):
+        letter = _make_letter([
+            "That project included Kubernetes production deployments for enterprise customers.",
+        ])
+        report = cover_letter.audit_cover_letter(letter, sample_profile, sample_projects, sample_rules, sample_job)
+        assert report.overall_verdict == AuditVerdict.FAIL
+        assert any(e.fact_id.startswith("unsupported-sentence") for e in report.entries)
+
     def test_allows_generic_cover_letter_framing(self, sample_profile, sample_projects, sample_rules, sample_job):
         letter = _make_letter(
             intro="Dear Hiring Manager, I am excited to apply for the Software Engineer role at ExampleCo.",
             body=[
+                "I've built a strong foundation in Python and TypeScript through hands-on projects.",
                 "My project work has given me hands-on experience with data structures, algorithms, and careful software design.",
                 "In a Python search engine project, I built tokenization, indexing, and query handling to support efficient full-text search over more than 56,000 web pages.",
                 "I'm especially interested in writing clean, maintainable code and contributing to reliable systems.",
+                "These experiences strengthened my ability to design maintainable systems.",
                 "These experiences have helped me develop a practical, detail-oriented approach that I would bring to this team.",
+                "I would welcome the opportunity to contribute to ExampleCo.",
             ],
             closing="Thank you for your time and consideration. Sincerely, Test User",
         )

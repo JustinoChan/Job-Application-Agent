@@ -45,6 +45,7 @@ CLAIM_VERBS = {
     "led", "lead", "coordinated", "coordinate", "designed", "design",
     "created", "create", "optimized", "optimize", "deployed", "deploy",
     "shipped", "ship", "maintained", "maintain", "owned", "own",
+    "included", "include", "trained", "train", "trains",
 }
 
 STOPWORDS = {
@@ -71,6 +72,11 @@ GENERIC_COVER_LETTER_PATTERNS = [
     r"\bto apply for\b",
     r"\bproject work has given me hands-on experience\b",
     r"\bthese experiences have helped me develop\b",
+    r"\bthese experiences strengthened my ability\b",
+    r"\b(i've|i\u2019ve|i\?ve)\s+built a strong foundation\b",
+    r"\b(i would|i'd|i\u2019d|i\?d)\s+bring\b",
+    r"\bi would welcome the opportunity\b",
+    r"\bcontribute to\b",
 ]
 
 
@@ -172,6 +178,7 @@ def _build_prompt(
             ],
             "forbidden": [
                 "Do not invent companies, internships, technologies, metrics, certifications, awards, deployments, team sizes, customers, or employment.",
+                "Do not mention coursework unless relevant coursework is explicitly listed in candidate.education.",
                 "Do not claim professional, paid, industry, internship, or production work experience.",
                 "Do not mention employers other than the target company.",
                 "Do not ask for more information; all usable context is in this INPUT_JSON.",
@@ -314,7 +321,13 @@ def _source_texts(
 
 def _is_claim_sentence(sentence: str) -> bool:
     lower = sentence.lower()
-    if not re.search(r"\b(i|my|i've|i have|i'm|i am)\b", lower):
+    has_claim_subject = (
+        re.search(r"\b(i|my|i've|i\u2019ve|i have|i'm|i\u2019m|i am)\b", lower)
+        or re.search(r"\b(that|this|one|another)\s+project\b", lower)
+        or lower.startswith("in one project")
+        or lower.startswith("in another")
+    )
+    if not has_claim_subject:
         return False
     tokens = _tokens(sentence)
     if tokens & CLAIM_VERBS:
