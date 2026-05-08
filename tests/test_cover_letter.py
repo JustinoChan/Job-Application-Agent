@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import json
+import shutil
+import uuid
+from datetime import date
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src import cover_letter
+from src import config, cover_letter, pipeline, tracker
 from src.models import (
     AuditVerdict,
     CoverLetter,
+    TrackerEntry,
+    TrackerStatus,
     JobPosting,
     JobRequirement,
     SelectedFact,
@@ -272,3 +278,61 @@ class TestRenderMarkdown:
         assert "Software Engineer" in md
         assert sample_profile.name in md
         assert "Dear Hiring Team" in md
+
+
+class TestCoverLetterPipeline:
+    @pytest.mark.asyncio
+    async def test_saves_draft_when_audit_fails(
+        self,
+        monkeypatch,
+        sample_profile,
+        sample_projects,
+        sample_rules,
+        sample_tailored,
+    ):
+        job_id = "test-job"
+        work_dir = Path(".pytest_pipeline_cover_letter") / uuid.uuid4().hex
+        try:
+            monkeypatch.setattr(config, "RESUMES_DIR", work_dir / "resumes")
+            monkeypatch.setattr(config, "COVER_LETTERS_DIR", work_dir / "cover_letters")
+            monkeypatch.setattr(config, "TRACKER_PATH", work_dir / "tracker.csv")
+
+            resume_paths = config.version_paths(job_id, 1)
+            resume_paths["dir"].mkdir(parents=True, exist_ok=True)
+            resume_paths["md"].write_text("resume markdown", encoding="utf-8")
+            resume_paths["meta"].write_text(sample_tailored.model_dump_json(), encoding="utf-8")
+
+            tracker.add_entry(config.TRACKER_PATH, TrackerEntry(
+                job_id=job_id,
+                date_added=date.today(),
+                company="ExampleCo",
+                role="Software Engineer",
+                status=TrackerStatus.PREPARED,
+                latest_resume_version=1,
+            ))
+
+            generated = CoverLetter(
+                job_id=job_id,
+                company="ExampleCo",
+                title="Software Engineer",
+                intro="I am excited to apply.",
+                body_paragraphs=[
+                    "I led a six-person engineering team and shipped production systems for enterprise customers.",
+                ],
+                closing="Thank you.",
+            )
+            with patch("src.pipeline.cover_letter_mod.generate_cover_letter", AsyncMock(return_value=generated)):
+                result = await pipeline.generate_cover_letter_for_job(
+                    job_id,
+                    sample_profile,
+                    sample_projects,
+                    sample_rules,
+                )
+
+            assert result.audit_verdict == "fail"
+            paths = config.cover_letter_version_paths(job_id, result.version)
+            assert paths["md"].exists()
+            assert paths["meta"].exists()
+            assert paths["audit"].exists()
+        finally:
+            shutil.rmtree(work_dir, ignore_errors=True)

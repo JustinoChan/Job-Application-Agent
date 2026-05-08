@@ -178,7 +178,7 @@ async def render_resume_pdf_for_version(
 
 class CoverLetterAuditError(RuntimeError):
     def __init__(self, letter: CoverLetter, report: AuditReport) -> None:
-        super().__init__("Cover letter audit failed; nothing was saved.")
+        super().__init__("Cover letter audit failed; PDF generation is blocked.")
         self.letter = letter
         self.report = report
 
@@ -214,9 +214,6 @@ async def generate_cover_letter_for_job(
     )
     letter = letter.model_copy(update={"job_id": job_id, "resume_version": resume_version})
     report = cover_letter_mod.audit_cover_letter(letter, profile, projects, rules, job)
-
-    if report.overall_verdict == AuditVerdict.FAIL:
-        raise CoverLetterAuditError(letter, report)
 
     with version_lock(job_id):
         config.ensure_directories()
@@ -265,13 +262,6 @@ def render_cover_letter_html_for_version(
     rules: ApplicationRules,
 ) -> Path:
     letter = load_cover_letter(job_id, version)
-    resume_version = letter.resume_version or resolve_latest_version(job_id)
-    tailored = load_tailored_resume(job_id, resume_version)
-    job = tailored.job_posting
-    report = cover_letter_mod.audit_cover_letter(letter, profile, projects, rules, job)
-    if report.overall_verdict == AuditVerdict.FAIL:
-        raise CoverLetterAuditError(letter, report)
-
     html = pdf_renderer.render_cover_letter_html(letter, profile)
     return pdf_renderer.save_cover_letter_html(html, job_id, version)
 
@@ -284,5 +274,14 @@ async def render_cover_letter_pdf_for_version(
     rules: ApplicationRules,
 ) -> Path:
     paths = config.cover_letter_version_paths(job_id, version)
+    letter = load_cover_letter(job_id, version)
+    resume_version = letter.resume_version or resolve_latest_version(job_id)
+    tailored = load_tailored_resume(job_id, resume_version)
+    job = tailored.job_posting
+    report = cover_letter_mod.audit_cover_letter(letter, profile, projects, rules, job)
+    if report.overall_verdict == AuditVerdict.FAIL:
+        cover_letter_mod.save_cover_letter_audit(report, job_id, version)
+        raise CoverLetterAuditError(letter, report)
+
     html_path = render_cover_letter_html_for_version(job_id, version, profile, projects, rules)
     return await pdf_renderer.render_pdf(html_path, paths["pdf"])

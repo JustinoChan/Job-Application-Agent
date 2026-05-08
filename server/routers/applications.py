@@ -214,14 +214,6 @@ async def generate_cover_letter(job_id: str, request: CoverLetterGenerateRequest
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except pipeline.CoverLetterAuditError as exc:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "message": "Cover letter audit failed; nothing was saved.",
-                "audit_report": exc.report.model_dump(mode="json"),
-            },
-        ) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Cover letter generation failed: {exc}") from exc
 
@@ -272,7 +264,7 @@ def get_cover_letter_html(job_id: str, version: int) -> str:
             list(dependencies.get_projects()),
             dependencies.get_rules(),
         )
-    except (FileNotFoundError, pipeline.CoverLetterAuditError) as exc:
+    except FileNotFoundError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return html_path.read_text(encoding="utf-8")
 
@@ -280,16 +272,15 @@ def get_cover_letter_html(job_id: str, version: int) -> str:
 @router.get("/{job_id}/cover-letter/{version}/pdf")
 async def get_cover_letter_pdf(job_id: str, version: int) -> FileResponse:
     paths = config.cover_letter_version_paths(job_id, version)
-    if not paths["pdf"].exists():
-        try:
-            await pipeline.render_cover_letter_pdf_for_version(
-                job_id, version,
-                dependencies.get_profile(),
-                list(dependencies.get_projects()),
-                dependencies.get_rules(),
-            )
-        except (FileNotFoundError, pipeline.CoverLetterAuditError) as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        await pipeline.render_cover_letter_pdf_for_version(
+            job_id, version,
+            dependencies.get_profile(),
+            list(dependencies.get_projects()),
+            dependencies.get_rules(),
+        )
+    except (FileNotFoundError, pipeline.CoverLetterAuditError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return FileResponse(
         paths["pdf"],
         media_type="application/pdf",

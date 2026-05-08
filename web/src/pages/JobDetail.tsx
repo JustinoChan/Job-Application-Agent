@@ -175,10 +175,20 @@ export default function JobDetail() {
                 ))}
               </select>
             )}
-            {selectedCoverVersion && (
+            {selectedCoverVersion && coverAudit?.overall_verdict === "pass" && (
               <a className="secondary button-link" href={coverLetterPdfUrl(jobId, selectedCoverVersion)}>Download PDF</a>
             )}
+            {selectedCoverVersion && coverAudit?.overall_verdict === "fail" && (
+              <button className="secondary" disabled title="PDF generation is blocked until the cover letter audit passes.">
+                PDF Blocked
+              </button>
+            )}
           </div>
+          {coverAudit?.overall_verdict === "fail" && (
+            <div className="error-banner">
+              Draft saved, but the audit found unsupported claims. Review the audit below before generating a PDF.
+            </div>
+          )}
           {selectedCoverVersion ? (
             <>
               <ResumePreview src={coverLetterHtmlUrl(jobId, selectedCoverVersion)} />

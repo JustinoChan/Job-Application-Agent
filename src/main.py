@@ -299,8 +299,12 @@ def cover_letter_cmd(
     paths = config.cover_letter_version_paths(result.job_id, result.version)
     console.print(f"[green]Cover letter saved:[/green] {paths['md']}")
     claim_auditor.print_audit_report(result.report)
-    console.print(f"[bold green]Cover letter v{result.version:03d} prepared.[/bold green]")
-    console.print(f"Run [bold]python -m src.main render-cover-letter-pdf {result.job_id}[/bold] to generate PDF.")
+    if result.report.overall_verdict == AuditVerdict.FAIL:
+        console.print("[bold yellow]Cover letter draft saved, but audit FAILED. PDF generation is blocked.[/bold yellow]")
+        console.print("[dim]Review the audit and regenerate or edit the source facts before rendering PDF.[/dim]")
+    else:
+        console.print(f"[bold green]Cover letter v{result.version:03d} prepared.[/bold green]")
+        console.print(f"Run [bold]python -m src.main render-cover-letter-pdf {result.job_id}[/bold] to generate PDF.")
 
 
 @app.command(name="render-cover-letter-pdf")
