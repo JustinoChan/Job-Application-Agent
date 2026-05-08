@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.fit_scorer import score_fit
 from src.job_parser import parse_job_description
-from tests.conftest import JAVA_JOB_TEXT, REACT_JOB_TEXT
+from tests.conftest import AMAZON_JOB_TEXT, JAVA_JOB_TEXT, REACT_JOB_TEXT
 
 
 class TestFitScoring:
@@ -44,3 +44,25 @@ class TestFitScoring:
         assert 0.0 <= fit.skill_match_rate <= 1.0
         assert 0.0 <= fit.nice_to_have_match_rate <= 1.0
         assert 0.0 <= fit.overall_score <= 1.0
+
+    def test_any_of_language_requirement_does_not_require_every_language(
+        self, sample_profile, sample_projects, sample_rules
+    ):
+        job = parse_job_description(AMAZON_JOB_TEXT, sample_profile, sample_projects, sample_rules)
+        fit = score_fit(job, sample_profile, sample_projects, sample_rules)
+
+        assert "Python" in [match.skill for match in fit.skill_matches if match.matched]
+        assert "Rust" not in fit.missing_required
+        assert "Go" not in fit.missing_required
+        assert "C#" not in fit.missing_required
+
+    def test_amazon_admin_and_education_requirements_do_not_pollute_missing(
+        self, sample_profile, sample_projects, sample_rules
+    ):
+        job = parse_job_description(AMAZON_JOB_TEXT, sample_profile, sample_projects, sample_rules)
+        fit = score_fit(job, sample_profile, sample_projects, sample_rules)
+        missing_text = "\n".join(fit.missing_required)
+
+        assert "18 years" not in missing_text
+        assert "bachelor" not in missing_text.lower()
+        assert "Skip to main content" not in missing_text

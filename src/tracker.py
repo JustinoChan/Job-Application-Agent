@@ -69,6 +69,7 @@ def update_status(
     audit_verdict: str | None = None,
     latest_resume_version: int | None = None,
     fit_score: float | None = None,
+    cover_letter_path: str | None = None,
 ) -> bool:
     with tracker_lock():
         if not tracker_path.exists():
@@ -92,6 +93,8 @@ def update_status(
                         row["latest_resume_version"] = str(latest_resume_version)
                     if fit_score is not None:
                         row["fit_score"] = str(fit_score)
+                    if cover_letter_path:
+                        row["cover_letter_path"] = cover_letter_path
                     found = True
                 rows.append(row)
 

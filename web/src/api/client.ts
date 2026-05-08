@@ -1,6 +1,8 @@
 import axios from "axios";
 import type {
   ConfirmResponse,
+  CoverLetterList,
+  CoverLetterResponse,
   DashboardStats,
   OpenClawStatus,
   PreviewResponse,
@@ -96,4 +98,33 @@ export function resumePdfUrl(jobId: string, version: number): string {
 export async function getAudit(jobId: string, version: number) {
   const response = await api.get(`/applications/${jobId}/audit/${version}`);
   return response.data;
+}
+
+export async function generateCoverLetter(
+  jobId: string,
+  resumeVersion?: number
+): Promise<CoverLetterResponse> {
+  const response = await api.post<CoverLetterResponse>(
+    `/applications/${jobId}/cover-letter`,
+    { resume_version: resumeVersion ?? null }
+  );
+  return response.data;
+}
+
+export async function listCoverLetters(jobId: string): Promise<CoverLetterList> {
+  const response = await api.get<CoverLetterList>(`/applications/${jobId}/cover-letters`);
+  return response.data;
+}
+
+export async function getCoverLetterAudit(jobId: string, version: number) {
+  const response = await api.get(`/applications/${jobId}/cover-letter/${version}/audit`);
+  return response.data;
+}
+
+export function coverLetterHtmlUrl(jobId: string, version: number): string {
+  return `${API_BASE}/api/applications/${jobId}/cover-letter/${version}/html`;
+}
+
+export function coverLetterPdfUrl(jobId: string, version: number): string {
+  return `${API_BASE}/api/applications/${jobId}/cover-letter/${version}/pdf`;
 }

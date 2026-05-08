@@ -167,6 +167,20 @@ class ConfirmResult(BaseModel):
     message: str
 
 
+class CoverLetter(BaseModel):
+    job_id: str
+    company: str
+    title: str
+    resume_version: Optional[int] = None
+    intro: str
+    body_paragraphs: list[str]
+    closing: str
+    referenced_project_ids: list[str] = Field(default_factory=list)
+    referenced_fact_ids: list[str] = Field(default_factory=list)
+    source_url: Optional[str] = None
+    generated_at: datetime = Field(default_factory=datetime.now)
+
+
 # ── Audit Models ─────────────────────────────────────────────────
 
 

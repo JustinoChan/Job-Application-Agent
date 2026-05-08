@@ -113,10 +113,18 @@ async def fetch_page(url: str) -> ScrapedJob:
 
 async def scrape_job_url(url: str, provider: str | None = None) -> str:
     scraped = await fetch_page(url)
-    return await extract_job_posting(scraped.raw_text, provider=provider or os.getenv("LLM_PROVIDER", "none"))
+    return await extract_job_posting(
+        scraped.raw_text,
+        provider=provider or os.getenv("LLM_PROVIDER", "none"),
+        source_url=scraped.final_url,
+    )
 
 
-async def extract_job_posting(raw_html_text: str, provider: str = "none") -> str:
+async def extract_job_posting(
+    raw_html_text: str,
+    provider: str = "none",
+    source_url: str | None = None,
+) -> str:
     cleaned = _clean_text(raw_html_text)
     provider = provider.lower().strip()
     if provider in {"", "none"}:
@@ -127,7 +135,7 @@ async def extract_job_posting(raw_html_text: str, provider: str = "none") -> str
         return await _extract_with_anthropic(cleaned)
     if provider == "openclaw":
         from src.openclaw_adapter import extract_job_posting_with_openclaw
-        return await extract_job_posting_with_openclaw(cleaned)
+        return await extract_job_posting_with_openclaw(cleaned, source_url=source_url)
     raise ValueError(f"Unsupported LLM provider: {provider}")
 
 

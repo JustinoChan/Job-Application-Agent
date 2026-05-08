@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.job_parser import _extract_company_and_title, parse_job_description
-from tests.conftest import JAVA_JOB_TEXT, REACT_JOB_TEXT
+from tests.conftest import AMAZON_JOB_TEXT, JAVA_JOB_TEXT, REACT_JOB_TEXT
 
 
 class TestCompanyTitleParsing:
@@ -58,6 +58,20 @@ class TestJobParsing:
         assert "kubernetes" in kw_lower
         assert "docker" in kw_lower
         assert "kafka" in kw_lower or "aws" in kw_lower
+
+    def test_amazon_style_sections_ignore_page_chrome(self, sample_profile, sample_projects, sample_rules):
+        job = parse_job_description(AMAZON_JOB_TEXT, sample_profile, sample_projects, sample_rules)
+
+        requirement_text = "\n".join(req.text for req in job.requirements)
+        nice_text = "\n".join(req.text for req in job.nice_to_haves)
+        responsibility_text = "\n".join(job.responsibilities)
+
+        assert "Experience with at least one general-purpose programming language" in requirement_text
+        assert "Experience with one or more of the following" in nice_text
+        assert "Design and develop scalable solutions" in responsibility_text
+        assert "Skip to main content" not in requirement_text
+        assert "Home" not in requirement_text
+        assert "Sign out" not in requirement_text
 
     def test_company_override(self, sample_profile, sample_projects, sample_rules):
         job = parse_job_description(

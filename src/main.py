@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from src import claim_auditor, config, job_parser, pipeline, tracker
+from src import claim_auditor, config, job_parser, pipeline as pipeline_mod, tracker
 from src.models import AuditVerdict, TailoredResume, TrackerEntry, TrackerStatus
 
 app = typer.Typer(
@@ -146,7 +146,7 @@ def tailor(
     title_override = entry.role if entry else None
 
     console.print()
-    result = pipeline.preview_application(
+    result = pipeline_mod.preview_application(
         raw_text,
         profile,
         projects,
@@ -161,7 +161,7 @@ def tailor(
         console.print("[yellow]Fit score is below threshold. Consider skipping this job.[/yellow]")
 
     try:
-        confirm = pipeline.confirm_application(
+        confirm = pipeline_mod.confirm_application(
             raw_text,
             profile,
             projects,
@@ -171,7 +171,7 @@ def tailor(
             title=title_override,
             url=entry.url if entry else None,
         )
-    except pipeline.PipelineAuditError as exc:
+    except pipeline_mod.PipelineAuditError as exc:
         claim_auditor.print_audit_report(exc.result.report)
         console.print("[bold red]Audit FAILED. Review the resume before proceeding.[/bold red]")
         raise typer.Exit(1)
@@ -236,7 +236,7 @@ def render_pdf(
     rules = config.load_rules()
 
     try:
-        tailored = pipeline.load_tailored_resume(job_id, version)
+        tailored = pipeline_mod.load_tailored_resume(job_id, version)
     except FileNotFoundError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(1)
@@ -254,18 +254,89 @@ def render_pdf(
         raise typer.Exit(1)
 
     try:
-        html_path = pipeline.render_resume_html_for_version(job_id, version, profile, projects, rules)
+        html_path = pipeline_mod.render_resume_html_for_version(job_id, version, profile, projects, rules)
         console.print(f"[green]HTML saved:[/green] {html_path}")
         pdf_path = asyncio.run(
-            pipeline.render_resume_pdf_for_version(job_id, version, profile, projects, rules)
+            pipeline_mod.render_resume_pdf_for_version(job_id, version, profile, projects, rules)
         )
-    except pipeline.PipelineAuditError:
+    except pipeline_mod.PipelineAuditError:
         console.print("[bold red]Audit FAILED. PDF generation blocked.[/bold red]")
         raise typer.Exit(1)
 
     console.print(f"[green]PDF saved:[/green] {pdf_path}")
 
     console.print(f"\n[bold green]Resume v{version:03d} rendered successfully.[/bold green]")
+
+
+@app.command(name="cover-letter")
+def cover_letter_cmd(
+    job_id: str = typer.Argument(help="Job ID from the tracker"),
+    resume_version: Optional[int] = typer.Option(None, "--resume-version", help="Resume version to base cover letter on (default: latest)"),
+) -> None:
+    """Generate a truthful cover letter for a job using OpenClaw."""
+    config.ensure_directories()
+    profile = config.load_profile()
+    projects = config.load_projects()
+    rules = config.load_rules()
+
+    try:
+        result = asyncio.run(
+            pipeline_mod.generate_cover_letter_for_job(
+                job_id, profile, projects, rules, resume_version=resume_version,
+            )
+        )
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1)
+    except pipeline_mod.CoverLetterAuditError as exc:
+        claim_auditor.print_audit_report(exc.report)
+        console.print("[bold red]Cover letter audit FAILED. Nothing was saved.[/bold red]")
+        raise typer.Exit(1)
+    except Exception as exc:
+        console.print(f"[red]Cover letter generation failed: {exc}[/red]")
+        raise typer.Exit(1)
+
+    paths = config.cover_letter_version_paths(result.job_id, result.version)
+    console.print(f"[green]Cover letter saved:[/green] {paths['md']}")
+    claim_auditor.print_audit_report(result.report)
+    console.print(f"[bold green]Cover letter v{result.version:03d} prepared.[/bold green]")
+    console.print(f"Run [bold]python -m src.main render-cover-letter-pdf {result.job_id}[/bold] to generate PDF.")
+
+
+@app.command(name="render-cover-letter-pdf")
+def render_cover_letter_pdf(
+    job_id: str = typer.Argument(help="Job ID from the tracker"),
+    version: Optional[int] = typer.Option(None, "--version", "-v", help="Cover letter version (default: latest)"),
+    allow_warn: bool = typer.Option(False, "--allow-warn", help="Proceed even if audit has warnings"),
+) -> None:
+    """Render a cover letter to HTML and PDF."""
+    if version is None:
+        try:
+            version = pipeline_mod.resolve_latest_cover_letter_version(job_id)
+        except FileNotFoundError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(1)
+
+    profile = config.load_profile()
+    projects = config.load_projects()
+    rules = config.load_rules()
+
+    try:
+        html_path = pipeline_mod.render_cover_letter_html_for_version(job_id, version, profile, projects, rules)
+        console.print(f"[green]HTML saved:[/green] {html_path}")
+        pdf_path = asyncio.run(
+            pipeline_mod.render_cover_letter_pdf_for_version(job_id, version, profile, projects, rules)
+        )
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1)
+    except pipeline_mod.CoverLetterAuditError as exc:
+        claim_auditor.print_audit_report(exc.report)
+        console.print("[bold red]Audit FAILED. PDF generation blocked.[/bold red]")
+        raise typer.Exit(1)
+
+    console.print(f"[green]PDF saved:[/green] {pdf_path}")
+    console.print(f"\n[bold green]Cover letter v{version:03d} rendered successfully.[/bold green]")
 
 
 @app.command()
@@ -329,7 +400,7 @@ def pipeline(
         raise typer.Exit(1)
 
     console.print()
-    result = pipeline.preview_application(
+    result = pipeline_mod.preview_application(
         raw_text,
         profile,
         projects,
@@ -349,7 +420,7 @@ def pipeline(
     claim_auditor.print_audit_report(result.report)
 
     try:
-        confirm = pipeline.confirm_application(
+        confirm = pipeline_mod.confirm_application(
             raw_text,
             profile,
             projects,
@@ -359,7 +430,7 @@ def pipeline(
             title=title,
             url=url,
         )
-    except pipeline.PipelineAuditError as exc:
+    except pipeline_mod.PipelineAuditError as exc:
         claim_auditor.print_audit_report(exc.result.report)
         console.print("\n[bold red]Audit FAILED. Nothing was saved.[/bold red]")
         raise typer.Exit(1)

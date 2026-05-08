@@ -135,3 +135,19 @@ class TestExtractJobPosting:
         with patch("src.openclaw_adapter.asyncio.create_subprocess_exec", return_value=proc):
             result = await extract_job_posting_with_openclaw("raw html content here")
             assert result == extracted
+
+    @pytest.mark.asyncio
+    async def test_prompt_includes_source_url(self):
+        extracted = "Job Title: Software Engineer\nCompany: TestCo"
+        proc = _mock_process(stdout=_openclaw_json(extracted))
+        with patch("src.openclaw_adapter.asyncio.create_subprocess_exec", return_value=proc) as mock_exec:
+            result = await extract_job_posting_with_openclaw(
+                "raw html content here",
+                source_url="https://example.com/jobs/123",
+            )
+
+        assert result == extracted
+        args = mock_exec.call_args.args
+        prompt = args[args.index("--prompt") + 1]
+        assert prompt.startswith("Source URL: https://example.com/jobs/123")
+        assert "raw html content here" in prompt

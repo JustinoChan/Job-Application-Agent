@@ -98,6 +98,12 @@ label {
   color: white;
 }
 
+.nav-button {
+  background: #f3f0ec;
+  color: #44403c;
+  padding: 8px 14px;
+}
+
 .page-shell {
   padding: 14px 12px 30px;
 }
@@ -444,6 +450,39 @@ label {
 .back-link {
   color: #b9471b;
   font-weight: 800;
+}
+
+.login-shell {
+  align-items: center;
+  display: flex;
+  min-height: 100vh;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-panel {
+  background: #fffdfb;
+  border: 1px solid #e1dbd3;
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(28, 25, 23, 0.08);
+  display: grid;
+  gap: 12px;
+  max-width: 390px;
+  padding: 28px;
+  width: 100%;
+}
+
+.login-panel h1 {
+  font-family: Georgia, serif;
+  margin: 2px 0 0;
+}
+
+.login-kicker {
+  color: #b9471b;
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 @media (max-width: 900px) {

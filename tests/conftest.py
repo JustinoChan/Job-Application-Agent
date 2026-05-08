@@ -167,3 +167,42 @@ Nice to Have
 - Experience with Terraform or CloudFormation
 - GraphQL API development
 """
+
+
+AMAZON_JOB_TEXT = """Software Development Engineer, AWS Data Services - 2026 (US) - Job ID: 10414316 | Amazon.jobs
+Skip to main content
+Home
+Teams
+Locations
+Job categories
+My career
+Settings
+Sign out
+Resources
+Accommodations
+Software Development Engineer, AWS Data Services - 2026 (US)
+Job ID: 10414316 | Amazon.com Services LLC
+Apply now
+Description
+AWS operates some of the world's most widely used database, storage, and analytics services.
+Key job responsibilities
+• Design and develop scalable solutions using cloud-native architectures and microservices in a large distributed computing environment.
+• Build and maintain resilient distributed systems that are scalable, fault-tolerant, and cost-effective.
+• Work in an agile environment practicing CI/CD principles while participating in operational responsibilities including on-call duties.
+Basic Qualifications
+- Experience with at least one general-purpose programming language such as Java, Python, C++, C#, Go, Rust, or TypeScript
+- Experience with data structure implementation, basic algorithm development, and/or object-oriented design principles
+- Currently has, or is in the process of obtaining a bachelor's degree in Computer Science, Computer Engineering, Data Science, Information Systems, or related STEM fields
+- Must be 18 years of age of older
+Preferred Qualifications
+- Experience from previous technical internship(s) or demonstrated project experience
+- Experience with one or more of the following: AI tools for development productivity, Cloud platforms (preferably AWS), Database systems (SQL and NoSQL), Contributing to open-source projects, Version control systems, Debugging and troubleshooting complex systems
+- Basic understanding of software development lifecycle (SDLC)
+- Strong problem-solving and analytical skills
+Amazon is an equal opportunity employer and does not discriminate on the basis of protected veteran status, disability, or other legally protected status.
+Job details
+USA, WA, Seattle
+Jobs for grads
+Software Development
+Share this job
+"""

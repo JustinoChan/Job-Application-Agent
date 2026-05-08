@@ -83,14 +83,17 @@ async def ask_openclaw(prompt: str, *, timeout: float | None = None) -> str:
     return text.strip()
 
 
-def _extraction_prompt(text: str) -> str:
+def _extraction_prompt(text: str, source_url: str | None = None) -> str:
+    source = f"Source URL: {source_url}\n" if source_url else "Source URL: not provided\n"
     return (
-        "Extract only the job posting content from this page. Return the job title, "
-        "company, location, responsibilities, requirements, and nice-to-haves. "
-        "Preserve bullet formatting. Do not add commentary.\n\n"
+        f"{source}"
+        "Task: Extract only the job posting content from the source page/text below. "
+        "Return the job title, company, location, responsibilities, requirements, "
+        "and nice-to-haves. Preserve bullet formatting. Do not add commentary.\n\n"
+        "Page text:\n"
         f"{text[:30000]}"
     )
 
 
-async def extract_job_posting_with_openclaw(raw_text: str) -> str:
-    return await ask_openclaw(_extraction_prompt(raw_text))
+async def extract_job_posting_with_openclaw(raw_text: str, source_url: str | None = None) -> str:
+    return await ask_openclaw(_extraction_prompt(raw_text, source_url=source_url))

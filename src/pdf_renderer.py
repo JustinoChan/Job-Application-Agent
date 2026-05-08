@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
 from src import config
-from src.models import MasterProfile, TailoredResume
+from src.models import CoverLetter, MasterProfile, TailoredResume
 
 
 def render_html(tailored: TailoredResume, profile: MasterProfile) -> str:
@@ -40,6 +41,33 @@ def render_html(tailored: TailoredResume, profile: MasterProfile) -> str:
 
 def save_html(html: str, job_id: str, version: int) -> Path:
     paths = config.version_paths(job_id, version)
+    paths["dir"].mkdir(parents=True, exist_ok=True)
+    paths["html"].write_text(html, encoding="utf-8")
+    return paths["html"]
+
+
+def render_cover_letter_html(letter: CoverLetter, profile: MasterProfile) -> str:
+    env = Environment(loader=FileSystemLoader(str(config.TEMPLATES_DIR)))
+    template = env.get_template("cover_letter_template.html")
+    context = {
+        "name": profile.name,
+        "email": profile.email,
+        "phone": profile.phone,
+        "location": profile.location,
+        "github": profile.github,
+        "portfolio": profile.portfolio,
+        "today": date.today().strftime("%B %d, %Y"),
+        "company": letter.company,
+        "title": letter.title,
+        "intro": letter.intro,
+        "body_paragraphs": letter.body_paragraphs,
+        "closing": letter.closing,
+    }
+    return template.render(**context)
+
+
+def save_cover_letter_html(html: str, job_id: str, version: int) -> Path:
+    paths = config.cover_letter_version_paths(job_id, version)
     paths["dir"].mkdir(parents=True, exist_ok=True)
     paths["html"].write_text(html, encoding="utf-8")
     return paths["html"]

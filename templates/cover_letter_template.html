@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.5;
+      margin: 36px;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .contact {
+      margin-bottom: 18px;
+    }
+    .date {
+      margin-bottom: 18px;
+    }
+    .recipient {
+      margin-bottom: 18px;
+    }
+    .recipient strong {
+      display: block;
+    }
+    p {
+      margin: 0 0 12px 0;
+    }
+    .signature {
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+  <h1>{{ name }}</h1>
+  <div class="contact">{{ email }}{% if phone %} | {{ phone }}{% endif %} | {{ location }}{% if github %} | {{ github }}{% endif %}{% if portfolio %} | {{ portfolio }}{% endif %}</div>
+
+  <div class="date">{{ today }}</div>
+
+  <div class="recipient">
+    <strong>{{ company }}</strong>
+    Re: {{ title }}
+  </div>
+
+  <p>Dear Hiring Team,</p>
+
+  <p>{{ intro }}</p>
+
+  {% for para in body_paragraphs %}
+  <p>{{ para }}</p>
+  {% endfor %}
+
+  <p>{{ closing }}</p>
+
+  <div class="signature">
+    <p>Sincerely,<br />{{ name }}</p>
+  </div>
+</body>
+</html>

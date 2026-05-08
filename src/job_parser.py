@@ -39,6 +39,8 @@ COMMON_TECH_SKILLS: set[str] = {
     # General
     "Git", "Linux", "REST", "GraphQL", "gRPC", "WebSocket",
     "CI/CD", "Agile", "Scrum", "Jira", "Confluence",
+    "data structure", "data structures", "algorithm", "algorithms", "object-oriented design", "OOP",
+    "SDLC", "software development lifecycle", "debugging", "troubleshooting",
     "Figma", "Storybook",
     # Testing
     "Jest", "Pytest", "Cypress", "Selenium", "Playwright",
@@ -141,19 +143,19 @@ def _extract_company_and_title(text: str) -> tuple[str, str]:
 
 _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("requirements", re.compile(
-        r"^(?:requirements?|qualifications?|what\s+you.+need|must[\s\-]?have|who\s+you\s+are|what\s+we.+looking)",
+        r"^(?:requirements?|(?:basic|required|minimum)\s+qualifications?|qualifications?|what\s+you.+need|must[\s\-]?have|who\s+you\s+are|what\s+we.+looking)",
         re.IGNORECASE,
     )),
     ("responsibilities", re.compile(
-        r"^(?:responsibilit|what\s+you.+do|the\s+role|about\s+the\s+role|in\s+this\s+role|you\s+will|your\s+impact)",
+        r"^(?:(?:key\s+job\s+)?responsibilit|what\s+you.+do|the\s+role|about\s+the\s+role|in\s+this\s+role|you\s+will|your\s+impact)",
         re.IGNORECASE,
     )),
     ("nice_to_have", re.compile(
-        r"^(?:nice[\s\-]?to[\s\-]?have|preferred|bonus|plus|additional|it.s\s+a\s+plus)",
+        r"^(?:nice[\s\-]?to[\s\-]?have|preferred(?:\s+qualifications?)?|bonus|plus|additional|it.s\s+a\s+plus)",
         re.IGNORECASE,
     )),
     ("about", re.compile(
-        r"^(?:about\s+(?:us|the\s+company)|who\s+we\s+are|our\s+(?:mission|team))",
+        r"^(?:description|about\s+(?:us|the\s+company)|who\s+we\s+are|our\s+(?:mission|team))",
         re.IGNORECASE,
     )),
     ("benefits", re.compile(
@@ -161,6 +163,14 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         re.IGNORECASE,
     )),
 ]
+
+_SECTION_STOP_PATTERN = re.compile(
+    r"^(?:amazon\s+is\s+an\s+equal\s+opportunity|equal\s+opportunity|our\s+inclusive\s+culture|"
+    r"the\s+base\s+salary\s+range|job\s+details|share\s+this\s+job|join\s+us\s+on|"
+    r"download\s+our\s+app|find\s+careers|legal\s+disclosures|privacy\s+and\s+data|"
+    r"©|\(c\))",
+    re.IGNORECASE,
+)
 
 
 def _split_sections(text: str) -> dict[str, str]:
@@ -171,6 +181,11 @@ def _split_sections(text: str) -> dict[str, str]:
 
     for line in lines:
         stripped = line.strip()
+        if _SECTION_STOP_PATTERN.search(stripped):
+            current_section = "ignore"
+            sections.setdefault(current_section, [])
+            continue
+
         matched_section = None
         for name, pattern in _SECTION_PATTERNS:
             if pattern.search(stripped):
@@ -187,6 +202,7 @@ def _split_sections(text: str) -> dict[str, str]:
             sections[current_section].append(line)
 
     result = {k: "\n".join(v).strip() for k, v in sections.items() if v}
+    result.pop("ignore", None)
 
     if "requirements" not in result and "header" in result:
         result["requirements"] = result["header"]

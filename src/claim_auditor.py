@@ -121,40 +121,43 @@ def _verify_fact(
         )
 
 
+FORBIDDEN_PHRASES = [
+    "internship",
+    "intern ",
+    "professional experience",
+    "work experience",
+    "industry experience",
+    "employed at",
+    "worked at",
+]
+
+
+def check_text_hard_constraints(text: str, rules: ApplicationRules) -> list[str]:
+    """Scan arbitrary text for forbidden phrases. Returns violation messages."""
+    violations: list[str] = []
+    full_text = text.lower()
+
+    for constraint in rules.never_claim:
+        if constraint.lower() in full_text:
+            violations.append(f"Never-claim violation: '{constraint}' found in text")
+
+    for phrase in FORBIDDEN_PHRASES:
+        if phrase in full_text:
+            violations.append(f"Forbidden phrase detected: '{phrase.strip()}'")
+
+    return violations
+
+
 def _check_hard_constraints(
     tailored: TailoredResume,
     profile: MasterProfile,
     rules: ApplicationRules,
 ) -> list[str]:
-    violations: list[str] = []
-
     all_text_parts: list[str] = []
     for tproj in tailored.selected_projects:
         for sf in tproj.selected_facts:
-            all_text_parts.append(sf.original_text.lower())
-
-    full_text = " ".join(all_text_parts)
-
-    forbidden_phrases = [
-        "internship",
-        "intern ",
-        "professional experience",
-        "work experience",
-        "industry experience",
-        "employed at",
-        "worked at",
-    ]
-
-    for constraint in rules.never_claim:
-        constraint_lower = constraint.lower()
-        if constraint_lower in full_text:
-            violations.append(f"Never-claim violation: '{constraint}' found in resume text")
-
-    for phrase in forbidden_phrases:
-        if phrase in full_text:
-            violations.append(f"Forbidden phrase detected: '{phrase.strip()}'")
-
-    return violations
+            all_text_parts.append(sf.original_text)
+    return check_text_hard_constraints(" ".join(all_text_parts), rules)
 
 
 def _text_similarity(a: str, b: str) -> float:

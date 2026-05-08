@@ -10,6 +10,9 @@ from server import dependencies
 from server.schemas import (
     ConfirmRequest,
     ConfirmResponse,
+    CoverLetterGenerateRequest,
+    CoverLetterListResponse,
+    CoverLetterResponse,
     OpenClawStatusResponse,
     PreviewRequest,
     PreviewResponse,
@@ -48,7 +51,12 @@ async def scrape_application(request: ScrapeRequest) -> ScrapeResponse:
     provider = request.provider or os.getenv("LLM_PROVIDER", "none")
     try:
         scraped = await job_scraper.fetch_page(str(request.url))
-        raw_text = await job_scraper.extract_job_posting(scraped.raw_text, provider=provider)
+        source_url = scraped.final_url or str(request.url)
+        raw_text = await job_scraper.extract_job_posting(
+            scraped.raw_text,
+            provider=provider,
+            source_url=source_url,
+        )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -186,6 +194,114 @@ def get_audit_report(job_id: str, version: int):
     path = config.version_paths(job_id, version)["audit"]
     if not path.exists():
         raise HTTPException(status_code=404, detail="Audit report not found.")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+@router.post("/{job_id}/cover-letter", response_model=CoverLetterResponse)
+async def generate_cover_letter(job_id: str, request: CoverLetterGenerateRequest) -> CoverLetterResponse:
+    from src.openclaw_adapter import is_openclaw_available
+    available, reason = is_openclaw_available()
+    if not available:
+        raise HTTPException(status_code=503, detail=f"OpenClaw is unavailable: {reason}")
+
+    try:
+        result = await pipeline.generate_cover_letter_for_job(
+            job_id,
+            dependencies.get_profile(),
+            list(dependencies.get_projects()),
+            dependencies.get_rules(),
+            resume_version=request.resume_version,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except pipeline.CoverLetterAuditError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Cover letter audit failed; nothing was saved.",
+                "audit_report": exc.report.model_dump(mode="json"),
+            },
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Cover letter generation failed: {exc}") from exc
+
+    return CoverLetterResponse(
+        job_id=result.job_id,
+        version=result.version,
+        company=result.letter.company,
+        title=result.letter.title,
+        intro=result.letter.intro,
+        body_paragraphs=result.letter.body_paragraphs,
+        closing=result.letter.closing,
+        audit_verdict=result.audit_verdict,
+        audit_report=result.report,
+    )
+
+
+@router.get("/{job_id}/cover-letters", response_model=CoverLetterListResponse)
+def list_cover_letter_versions(job_id: str) -> CoverLetterListResponse:
+    job_dir = config.job_cover_letter_dir(job_id)
+    if not job_dir.exists():
+        return CoverLetterListResponse(job_id=job_id, versions=[])
+    versions: list[int] = []
+    for f in job_dir.glob("cover_letter_v*.md"):
+        import re as _re
+        m = _re.search(r"cover_letter_v(\d+)\.md$", f.name)
+        if m:
+            versions.append(int(m.group(1)))
+    return CoverLetterListResponse(job_id=job_id, versions=sorted(versions))
+
+
+@router.get("/{job_id}/cover-letter/{version}", response_class=PlainTextResponse)
+def get_cover_letter_markdown(job_id: str, version: int) -> str:
+    path = config.cover_letter_version_paths(job_id, version)["md"]
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Cover letter markdown not found.")
+    return path.read_text(encoding="utf-8")
+
+
+@router.get("/{job_id}/cover-letter/{version}/html", response_class=HTMLResponse)
+def get_cover_letter_html(job_id: str, version: int) -> str:
+    paths = config.cover_letter_version_paths(job_id, version)
+    if paths["html"].exists():
+        return paths["html"].read_text(encoding="utf-8")
+    try:
+        html_path = pipeline.render_cover_letter_html_for_version(
+            job_id, version,
+            dependencies.get_profile(),
+            list(dependencies.get_projects()),
+            dependencies.get_rules(),
+        )
+    except (FileNotFoundError, pipeline.CoverLetterAuditError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return html_path.read_text(encoding="utf-8")
+
+
+@router.get("/{job_id}/cover-letter/{version}/pdf")
+async def get_cover_letter_pdf(job_id: str, version: int) -> FileResponse:
+    paths = config.cover_letter_version_paths(job_id, version)
+    if not paths["pdf"].exists():
+        try:
+            await pipeline.render_cover_letter_pdf_for_version(
+                job_id, version,
+                dependencies.get_profile(),
+                list(dependencies.get_projects()),
+                dependencies.get_rules(),
+            )
+        except (FileNotFoundError, pipeline.CoverLetterAuditError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return FileResponse(
+        paths["pdf"],
+        media_type="application/pdf",
+        filename=paths["pdf"].name,
+    )
+
+
+@router.get("/{job_id}/cover-letter/{version}/audit")
+def get_cover_letter_audit(job_id: str, version: int):
+    path = config.cover_letter_version_paths(job_id, version)["audit"]
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Cover letter audit not found.")
     return json.loads(path.read_text(encoding="utf-8"))
 
 

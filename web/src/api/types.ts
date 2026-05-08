@@ -99,3 +99,20 @@ export interface OpenClawStatus {
   available: boolean;
   reason: string;
 }
+
+export interface CoverLetterResponse {
+  job_id: string;
+  version: number;
+  company: string;
+  title: string;
+  intro: string;
+  body_paragraphs: string[];
+  closing: string;
+  audit_verdict: string;
+  audit_report: AuditReport;
+}
+
+export interface CoverLetterList {
+  job_id: string;
+  versions: number[];
+}

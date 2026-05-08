@@ -90,3 +90,24 @@ class ReloadConfigResponse(BaseModel):
 class OpenClawStatusResponse(BaseModel):
     available: bool
     reason: str
+
+
+class CoverLetterGenerateRequest(BaseModel):
+    resume_version: int | None = None
+
+
+class CoverLetterResponse(BaseModel):
+    job_id: str
+    version: int
+    company: str
+    title: str
+    intro: str
+    body_paragraphs: list[str]
+    closing: str
+    audit_verdict: str
+    audit_report: AuditReport
+
+
+class CoverLetterListResponse(BaseModel):
+    job_id: str
+    versions: list[int]
