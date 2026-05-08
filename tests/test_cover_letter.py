@@ -222,6 +222,22 @@ class TestGenerateCoverLetter:
         assert letter.intro == "Hi."
 
     @pytest.mark.asyncio
+    async def test_repairs_nested_duplicate_body_paragraphs(self, sample_profile, sample_projects, sample_rules, sample_job, sample_tailored):
+        response = (
+            '{"intro":"Hi.",'
+            '"body_paragraphs":["First body paragraph.",'
+            '"body_paragraphs":["Second body paragraph."],'
+            '"closing":"Bye."}'
+        )
+        with patch("src.cover_letter.openclaw_adapter.ask_openclaw", AsyncMock(return_value=response)):
+            letter = await cover_letter.generate_cover_letter(
+                sample_job, sample_tailored, sample_profile, sample_projects, sample_rules,
+            )
+
+        assert letter.body_paragraphs == ["First body paragraph.", "Second body paragraph."]
+        assert letter.closing == "Bye."
+
+    @pytest.mark.asyncio
     async def test_invalid_json_raises(self, sample_profile, sample_projects, sample_rules, sample_job, sample_tailored):
         with patch("src.cover_letter.openclaw_adapter.ask_openclaw", AsyncMock(return_value="not json")):
             with pytest.raises(cover_letter.CoverLetterGenerationError):

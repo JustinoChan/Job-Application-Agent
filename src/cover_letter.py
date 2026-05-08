@@ -186,7 +186,7 @@ def _build_prompt(
         },
         "output_schema": {
             "intro": "string",
-            "body_paragraphs": ["string", "string"],
+            "body_paragraphs": "array of exactly two strings; use this key exactly once",
             "closing": "string",
         },
     }
@@ -195,6 +195,8 @@ def _build_prompt(
         "TASK: Generate a truthful 3-paragraph cover letter from INPUT_JSON. "
         "You already have the target company, role, job requirements, source URL, candidate skills, education, and approved project facts. "
         "Do not ask follow-up questions. Respond only with valid JSON matching output_schema. "
+        "Use exactly one body_paragraphs key, and its value must be one array containing two strings. "
+        'The only top-level keys allowed are "intro", "body_paragraphs", and "closing". '
         f"INPUT_JSON: {json.dumps(payload, ensure_ascii=True, separators=(',', ':'))}"
     )
 
@@ -212,12 +214,24 @@ def _parse_response(text: str) -> dict:
             raise CoverLetterGenerationError(
                 f"Could not extract JSON from OpenClaw response: {cleaned[:300]}"
             )
+        extracted = match.group(0)
+        repaired = _repair_duplicate_body_paragraphs(extracted)
         try:
-            return json.loads(match.group(0))
+            return json.loads(repaired)
         except json.JSONDecodeError as exc:
             raise CoverLetterGenerationError(
                 f"OpenClaw returned invalid JSON: {exc}"
             ) from exc
+
+
+def _repair_duplicate_body_paragraphs(text: str) -> str:
+    """Repair a common malformed response with a nested duplicate body_paragraphs key."""
+    return re.sub(
+        r'("body_paragraphs"\s*:\s*\[(?:"(?:\\.|[^"\\])*"\s*,\s*)*)"body_paragraphs"\s*:\s*\[',
+        r"\1",
+        text,
+        count=1,
+    )
 
 
 async def generate_cover_letter(
