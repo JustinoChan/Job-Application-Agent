@@ -152,6 +152,33 @@ class TestGenerateCoverLetter:
         assert letter.referenced_project_ids == ["capstone-archive"]
 
     @pytest.mark.asyncio
+    async def test_prompt_includes_job_and_candidate_context(self, sample_profile, sample_projects, sample_rules, sample_job, sample_tailored):
+        response = json.dumps({
+            "intro": "I'm excited about the role.",
+            "body_paragraphs": ["Para 1 about React.", "Para 2 about Django."],
+            "closing": "Thank you for considering my application.",
+        })
+        with patch("src.cover_letter.openclaw_adapter.ask_openclaw", AsyncMock(return_value=response)) as mock_ask:
+            await cover_letter.generate_cover_letter(
+                sample_job,
+                sample_tailored,
+                sample_profile,
+                sample_projects,
+                sample_rules,
+                source_url="https://example.com/job",
+            )
+
+        prompt = mock_ask.call_args.args[0]
+        assert "INPUT_JSON" in prompt
+        assert "Do not ask follow-up questions" in prompt
+        assert "https://example.com/job" in prompt
+        assert "ExampleCo" in prompt
+        assert "Software Engineer" in prompt
+        assert "Test User" in prompt
+        assert "Capstone Project Archive" in prompt
+        assert "Built a full-stack web application" in prompt
+
+    @pytest.mark.asyncio
     async def test_strips_markdown_code_fences(self, sample_profile, sample_projects, sample_rules, sample_job, sample_tailored):
         response = '```json\n{"intro": "Hi.", "body_paragraphs": ["Body."], "closing": "Bye."}\n```'
         with patch("src.cover_letter.openclaw_adapter.ask_openclaw", AsyncMock(return_value=response)):

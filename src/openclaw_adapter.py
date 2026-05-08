@@ -10,15 +10,34 @@ class OpenClawError(Exception):
     pass
 
 
-OPENCLAW_COMMAND = os.getenv("OPENCLAW_COMMAND", "openclaw")
-OPENCLAW_MODEL = os.getenv("OPENCLAW_MODEL", "openai-codex/gpt-5.4-mini")
-OPENCLAW_TIMEOUT = float(os.getenv("OPENCLAW_TIMEOUT_SECONDS", "60"))
+DEFAULT_OPENCLAW_COMMAND = "openclaw"
+DEFAULT_OPENCLAW_MODEL = "openai-codex/gpt-5.4-mini"
+DEFAULT_OPENCLAW_TIMEOUT = 60.0
+
+
+def get_openclaw_command() -> str:
+    return os.getenv("OPENCLAW_COMMAND", DEFAULT_OPENCLAW_COMMAND)
+
+
+def get_openclaw_model() -> str:
+    return os.getenv("OPENCLAW_MODEL", DEFAULT_OPENCLAW_MODEL)
+
+
+def get_openclaw_timeout() -> float:
+    raw = os.getenv("OPENCLAW_TIMEOUT_SECONDS")
+    if not raw:
+        return DEFAULT_OPENCLAW_TIMEOUT
+    try:
+        return float(raw)
+    except ValueError:
+        return DEFAULT_OPENCLAW_TIMEOUT
 
 
 def is_openclaw_available() -> tuple[bool, str]:
+    command = get_openclaw_command()
     try:
         result = subprocess.run(
-            [OPENCLAW_COMMAND, "--version"],
+            [command, "--version"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -36,13 +55,15 @@ def is_openclaw_available() -> tuple[bool, str]:
 
 
 async def ask_openclaw(prompt: str, *, timeout: float | None = None) -> str:
-    effective_timeout = timeout if timeout is not None else OPENCLAW_TIMEOUT
+    command = get_openclaw_command()
+    model = get_openclaw_model()
+    effective_timeout = timeout if timeout is not None else get_openclaw_timeout()
     try:
         proc = await asyncio.create_subprocess_exec(
-            OPENCLAW_COMMAND,
+            command,
             "infer", "model", "run",
             "--gateway",
-            "--model", OPENCLAW_MODEL,
+            "--model", model,
             "--prompt", prompt,
             "--json",
             stdout=asyncio.subprocess.PIPE,

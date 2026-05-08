@@ -43,6 +43,14 @@ class TestIsOpenclawAvailable:
             assert available is True
             assert "2026.5.4" in reason
 
+    def test_uses_current_env_command(self, monkeypatch):
+        monkeypatch.setenv("OPENCLAW_COMMAND", "C:/custom/openclaw.cmd")
+        with patch("src.openclaw_adapter.subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="OpenClaw test\n", stderr="")
+            available, _ = is_openclaw_available()
+        assert available is True
+        assert mock_run.call_args.args[0][0] == "C:/custom/openclaw.cmd"
+
     def test_not_found(self):
         with patch("src.openclaw_adapter.subprocess.run", side_effect=FileNotFoundError):
             available, reason = is_openclaw_available()
@@ -70,6 +78,19 @@ class TestAskOpenclaw:
         with patch("src.openclaw_adapter.asyncio.create_subprocess_exec", return_value=proc):
             result = await ask_openclaw("say hello")
             assert result == "Hello world"
+
+    @pytest.mark.asyncio
+    async def test_uses_current_env_command_and_model(self, monkeypatch):
+        monkeypatch.setenv("OPENCLAW_COMMAND", "C:/custom/openclaw.cmd")
+        monkeypatch.setenv("OPENCLAW_MODEL", "openai-codex/test-model")
+        proc = _mock_process(stdout=_openclaw_json("Hello world"))
+        with patch("src.openclaw_adapter.asyncio.create_subprocess_exec", return_value=proc) as mock_exec:
+            result = await ask_openclaw("say hello")
+
+        assert result == "Hello world"
+        args = mock_exec.call_args.args
+        assert args[0] == "C:/custom/openclaw.cmd"
+        assert args[args.index("--model") + 1] == "openai-codex/test-model"
 
     @pytest.mark.asyncio
     async def test_nonzero_exit(self):

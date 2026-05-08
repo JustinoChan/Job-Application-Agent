@@ -111,44 +111,72 @@ def _build_prompt(
     profile: MasterProfile,
     source_url: str | None,
 ) -> str:
-    top_requirements = [r.text for r in job.requirements[:3]]
-    top_keywords = job.extracted_keywords[:5]
-
-    selected_facts: list[str] = []
+    selected_projects = []
     for tproj in tailored.selected_projects:
-        for sf in tproj.selected_facts:
-            selected_facts.append(f"- ({tproj.name}) {sf.original_text}")
+        selected_projects.append({
+            "name": tproj.name,
+            "role": tproj.role,
+            "stack": tproj.stack,
+            "approved_facts": [
+                {
+                    "fact_id": sf.fact_id,
+                    "text": sf.original_text,
+                }
+                for sf in tproj.selected_facts
+            ],
+        })
 
-    education_lines = [
-        f"- {edu.degree}, {edu.school} ({edu.graduation})"
-        for edu in profile.education
-    ]
-
-    source_url_line = f"Source URL: {source_url}\n" if source_url else ""
+    payload = {
+        "target_job": {
+            "company": job.company,
+            "title": job.title,
+            "location": job.location,
+            "source_url": source_url,
+            "top_requirements": [r.text for r in job.requirements[:6]],
+            "top_keywords": job.extracted_keywords[:12],
+            "responsibilities": job.responsibilities[:6],
+        },
+        "candidate": {
+            "name": profile.name,
+            "education": [
+                {
+                    "school": edu.school,
+                    "degree": edu.degree,
+                    "graduation": edu.graduation,
+                }
+                for edu in profile.education
+            ],
+            "skills": {
+                "strong": profile.skills.strong,
+                "familiar": profile.skills.familiar,
+            },
+            "selected_projects": selected_projects,
+        },
+        "rules": {
+            "allowed": [
+                "Use only candidate education, skills, selected projects, and approved facts from this JSON.",
+                "Rewrite approved facts for clarity while keeping the meaning truthful.",
+                "Emphasize matches to target_job requirements and keywords.",
+            ],
+            "forbidden": [
+                "Do not invent companies, internships, technologies, metrics, certifications, awards, deployments, team sizes, customers, or employment.",
+                "Do not claim professional, paid, industry, internship, or production work experience.",
+                "Do not mention employers other than the target company.",
+                "Do not ask for more information; all usable context is in this INPUT_JSON.",
+            ],
+        },
+        "output_schema": {
+            "intro": "string",
+            "body_paragraphs": ["string", "string"],
+            "closing": "string",
+        },
+    }
 
     return (
-        "You write professional, truthful cover letters in a warm but concise voice. "
-        "Use ONLY the provided projects, skills, and education. "
-        "Do not invent companies, internships, technologies, or experiences. "
-        "Do not claim professional or industry work experience. "
-        "Do not mention employers other than the target company.\n\n"
-        "Keep every project claim close to an approved project fact. "
-        "Do not add team sizes, deployments, production ownership, customers, "
-        "metrics, awards, or certifications unless they are explicitly provided.\n\n"
-        f"{source_url_line}"
-        f"Target company: {job.company}\n"
-        f"Role: {job.title}\n"
-        f"Top requirements: {top_requirements}\n"
-        f"Top keywords: {top_keywords}\n\n"
-        f"Candidate name: {profile.name}\n"
-        f"Education:\n" + "\n".join(education_lines) + "\n\n"
-        f"Strong skills: {', '.join(profile.skills.strong)}\n"
-        f"Familiar skills: {', '.join(profile.skills.familiar)}\n\n"
-        "Approved project facts (use these as the only source of project claims):\n"
-        + "\n".join(selected_facts) + "\n\n"
-        "Write a 3-paragraph cover letter. Respond ONLY with valid JSON in this exact shape:\n"
-        '{"intro": "...", "body_paragraphs": ["...", "..."], "closing": "..."}\n'
-        "No markdown fences, no preamble, no commentary. JSON only."
+        "TASK: Generate a truthful 3-paragraph cover letter from INPUT_JSON. "
+        "You already have the target company, role, job requirements, source URL, candidate skills, education, and approved project facts. "
+        "Do not ask follow-up questions. Respond only with valid JSON matching output_schema. "
+        f"INPUT_JSON: {json.dumps(payload, ensure_ascii=True, separators=(',', ':'))}"
     )
 
 
