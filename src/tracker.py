@@ -35,6 +35,7 @@ TRACKER_COLUMNS = [
 def ensure_tracker_exists(tracker_path: Path) -> None:
     with tracker_lock():
         _ensure_tracker_exists_unlocked(tracker_path)
+        _migrate_if_needed_unlocked(tracker_path)
 
 
 def _ensure_tracker_exists_unlocked(tracker_path: Path) -> None:
@@ -43,6 +44,51 @@ def _ensure_tracker_exists_unlocked(tracker_path: Path) -> None:
         with open(tracker_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(TRACKER_COLUMNS)
+
+
+def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
+    """Bring tracker.csv up to the current TRACKER_COLUMNS layout in one pass.
+
+    Handles two legacy shapes that can coexist in the same file:
+    - rows written when there were no `starred` column (one short)
+    - rows written under a stale header that lacks `starred`
+    """
+    if not tracker_path.exists():
+        return
+    with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        try:
+            header = next(reader)
+        except StopIteration:
+            return
+        if header == TRACKER_COLUMNS:
+            return
+        body = list(reader)
+
+    starred_idx = TRACKER_COLUMNS.index("starred")
+    normalized: list[dict[str, str]] = []
+    for raw_row in body:
+        if not raw_row:
+            continue
+        if len(raw_row) == len(TRACKER_COLUMNS):
+            row = dict(zip(TRACKER_COLUMNS, raw_row))
+        elif len(raw_row) == len(TRACKER_COLUMNS) - 1:
+            # Old row missing the starred column — insert "0" in the right slot
+            patched = list(raw_row[:starred_idx]) + ["0"] + list(raw_row[starred_idx:])
+            row = dict(zip(TRACKER_COLUMNS, patched))
+        else:
+            # Best-effort: map what we can from the old header, default the rest
+            mapped = {k: v for k, v in zip(header, raw_row)}
+            row = {col: mapped.get(col, "") for col in TRACKER_COLUMNS}
+            if not row.get("starred"):
+                row["starred"] = "0"
+        normalized.append(row)
+
+    with open(tracker_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
+        writer.writeheader()
+        for row in normalized:
+            writer.writerow({k: row.get(k, "") for k in TRACKER_COLUMNS})
 
 
 def generate_job_id(company: str, title: str) -> str:
@@ -56,6 +102,7 @@ def generate_job_id(company: str, title: str) -> str:
 def add_entry(tracker_path: Path, entry: TrackerEntry) -> None:
     with tracker_lock():
         _ensure_tracker_exists_unlocked(tracker_path)
+        _migrate_if_needed_unlocked(tracker_path)
         with open(tracker_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
             writer.writerow(_entry_to_row(entry))
@@ -76,6 +123,7 @@ def update_status(
     with tracker_lock():
         if not tracker_path.exists():
             return False
+        _migrate_if_needed_unlocked(tracker_path)
 
         rows: list[dict] = []
         found = False
@@ -123,6 +171,7 @@ def bulk_update_status(
     with tracker_lock():
         if not tracker_path.exists():
             return 0
+        _migrate_if_needed_unlocked(tracker_path)
         rows: list[dict] = []
         updated = 0
         today = date.today().isoformat()
@@ -147,6 +196,7 @@ def job_id_exists(tracker_path: Path, job_id: str) -> bool:
     with tracker_lock():
         if not tracker_path.exists():
             return False
+        _migrate_if_needed_unlocked(tracker_path)
         with open(tracker_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -159,6 +209,7 @@ def get_entry(tracker_path: Path, job_id: str) -> TrackerEntry | None:
     with tracker_lock():
         if not tracker_path.exists():
             return None
+        _migrate_if_needed_unlocked(tracker_path)
         with open(tracker_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -171,6 +222,7 @@ def get_latest_entry(tracker_path: Path) -> TrackerEntry | None:
     with tracker_lock():
         if not tracker_path.exists():
             return None
+        _migrate_if_needed_unlocked(tracker_path)
         last_row = None
         with open(tracker_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
@@ -187,6 +239,7 @@ def list_entries(
     with tracker_lock():
         if not tracker_path.exists():
             return []
+        _migrate_if_needed_unlocked(tracker_path)
         entries: list[TrackerEntry] = []
         with open(tracker_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
