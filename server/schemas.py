@@ -111,3 +111,19 @@ class CoverLetterResponse(BaseModel):
 class CoverLetterListResponse(BaseModel):
     job_id: str
     versions: list[int]
+
+
+class DiscoverRequest(BaseModel):
+    company: str
+    title: str
+    url: str
+    raw_text: str
+    source: str | None = None
+
+
+class DiscoverResponse(BaseModel):
+    job_id: str
+    status: Literal["saved", "exists", "skipped"]
+    fit_score: float | None = None
+    recommendation: str | None = None
+    reason: str | None = None

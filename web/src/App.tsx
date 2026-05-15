@@ -12,6 +12,7 @@ export default function App() {
 
   function handleLogout() {
     localStorage.removeItem("JOB_AGENT_AUTHENTICATED");
+    localStorage.removeItem("JOB_AGENT_API_TOKEN");
     setIsAuthenticated(false);
   }
 

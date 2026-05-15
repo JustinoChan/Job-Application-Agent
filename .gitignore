@@ -51,3 +51,6 @@ data/project_bank.yaml
 .env
 .env.local
 .claude
+
+local-backend-runbook.md
+.qwen/

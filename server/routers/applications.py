@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
@@ -13,6 +14,8 @@ from server.schemas import (
     CoverLetterGenerateRequest,
     CoverLetterListResponse,
     CoverLetterResponse,
+    DiscoverRequest,
+    DiscoverResponse,
     OpenClawStatusResponse,
     PreviewRequest,
     PreviewResponse,
@@ -21,8 +24,8 @@ from server.schemas import (
     StatusUpdateRequest,
     TrackerEntryResponse,
 )
-from src import config, job_parser, job_scraper, pipeline, tracker
-from src.models import TrackerStatus
+from src import config, fit_scorer, job_parser, job_scraper, pipeline, tracker
+from src.models import TrackerEntry, TrackerStatus
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -84,6 +87,58 @@ def preview_application(request: PreviewRequest) -> PreviewResponse:
         title=request.title,
     )
     return _preview_response(result)
+
+
+@router.post("/discover", response_model=DiscoverResponse)
+def discover_application(request: DiscoverRequest) -> DiscoverResponse:
+    """Ingest a pre-scraped posting from the VM scraper. Idempotent on job_id."""
+    config.ensure_directories()
+    job_id = tracker.generate_job_id(request.company, request.title)
+
+    if tracker.job_id_exists(config.TRACKER_PATH, job_id):
+        return DiscoverResponse(job_id=job_id, status="exists")
+
+    profile = dependencies.get_profile()
+    projects = list(dependencies.get_projects())
+    rules = dependencies.get_rules()
+
+    job = job_parser.parse_job_description(
+        request.raw_text, profile, projects, rules,
+        company_override=request.company, title_override=request.title,
+    )
+    fit = fit_scorer.score_fit(job, profile, projects, rules)
+
+    if fit.recommendation == "skip":
+        return DiscoverResponse(
+            job_id=job_id,
+            status="skipped",
+            fit_score=fit.overall_score,
+            recommendation=fit.recommendation,
+            reason=f"Fit score {fit.overall_score:.0%} below threshold",
+        )
+
+    raw_path = config.JOBS_RAW_DIR / f"{job_id}.txt"
+    raw_path.write_text(request.raw_text, encoding="utf-8")
+
+    entry = TrackerEntry(
+        job_id=job_id,
+        date_added=date.today(),
+        company=request.company,
+        role=request.title,
+        url=request.url,
+        status=TrackerStatus.FOUND,
+        fit_score=fit.overall_score,
+        notes=request.source,
+        next_action="review",
+    )
+    tracker.add_entry(config.TRACKER_PATH, entry)
+
+    return DiscoverResponse(
+        job_id=job_id,
+        status="saved",
+        fit_score=fit.overall_score,
+        recommendation=fit.recommendation,
+    )
 
 
 @router.post("/confirm", response_model=ConfirmResponse)

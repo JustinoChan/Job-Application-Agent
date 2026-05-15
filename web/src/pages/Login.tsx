@@ -1,25 +1,46 @@
 import { FormEvent, useState } from "react";
+import axios from "axios";
 
 interface LoginProps {
   onLogin: () => void;
 }
 
-const USERNAME = "justin";
-const PASSWORD = "chan";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export default function Login({ onLogin }: LoginProps) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [token, setToken] = useState("");
   const [error, setError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (username.trim().toLowerCase() === USERNAME && password === PASSWORD) {
-      localStorage.setItem("JOB_AGENT_AUTHENTICATED", "true");
-      onLogin();
+    setError("");
+    const trimmed = token.trim();
+    if (!trimmed) {
+      setError("Enter your API token.");
       return;
     }
-    setError("Invalid username or password.");
+
+    setVerifying(true);
+    try {
+      await axios.get(`${API_BASE}/api/applications/openclaw-status`, {
+        headers: { Authorization: `Bearer ${trimmed}` }
+      });
+      localStorage.setItem("JOB_AGENT_API_TOKEN", trimmed);
+      localStorage.setItem("JOB_AGENT_AUTHENTICATED", "true");
+      onLogin();
+    } catch (err: any) {
+      const status = err.response?.status;
+      if (status === 401) {
+        setError("Token rejected by the server.");
+      } else if (status === undefined) {
+        setError("Could not reach the API. Check the tunnel.");
+      } else {
+        setError(err.response?.data?.detail || err.message);
+      }
+    } finally {
+      setVerifying(false);
+    }
   }
 
   return (
@@ -31,24 +52,19 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
         {error && <div className="error-banner">{error}</div>}
         <div>
-          <label>Username</label>
-          <input
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </div>
-        <div>
-          <label>Password</label>
+          <label>API Token</label>
           <input
             autoComplete="current-password"
+            autoFocus
             type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            placeholder="Paste the API_TOKEN from .env"
           />
         </div>
-        <button type="submit">Log In</button>
+        <button type="submit" disabled={verifying}>
+          {verifying ? "Verifying..." : "Log In"}
+        </button>
       </form>
     </main>
   );

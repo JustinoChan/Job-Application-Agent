@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Job Application Agent scraper every 4 hours
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=4h
+RandomizedDelaySec=10min
+Persistent=true
+Unit=scraper.service
+
+[Install]
+WantedBy=timers.target

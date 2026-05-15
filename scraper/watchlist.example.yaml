@@ -1,0 +1,17 @@
+# Sources the scraper will check on each run.
+# Step 1: this file is read but adapters are stubs.
+# Step 2: each source type will have a real implementation.
+
+sources: []
+# sources:
+#   - kind: greenhouse
+#     company_slug: anthropic
+#     match_titles: ["software", "engineer", "data", "ml"]
+#   - kind: lever
+#     company_slug: figma
+#     match_titles: ["software", "data"]
+#   - kind: ashby
+#     company_slug: openai
+#     match_titles: ["software", "research engineer"]
+#   - kind: hn_who_is_hiring
+#     match_keywords: ["python", "react", "ml"]

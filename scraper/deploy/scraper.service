@@ -1,0 +1,14 @@
+[Unit]
+Description=Job Application Agent scraper (one-shot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=scraper
+Group=scraper
+WorkingDirectory=/opt/job-application-agent/scraper
+EnvironmentFile=/opt/job-application-agent/scraper/.env
+ExecStart=/opt/job-application-agent/scraper/.venv/bin/python -m scraper.main
+StandardOutput=journal
+StandardError=journal
