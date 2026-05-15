@@ -54,3 +54,7 @@ data/project_bank.yaml
 
 local-backend-runbook.md
 .qwen/
+
+# Per-VM scraper config — example is committed, real one is user-curated
+scraper/watchlist.yaml
+scraper/.env

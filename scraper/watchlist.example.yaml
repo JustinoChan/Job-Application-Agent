@@ -1,17 +1,191 @@
-# Sources the scraper will check on each run.
-# Step 1: this file is read but adapters are stubs.
-# Step 2: each source type will have a real implementation.
+# Watchlist for the scraper. Copy to `watchlist.yaml` (gitignored on the VM) and edit.
+# Slugs here are best guesses based on each company's career page URL — verify and
+# fix as you go. A 4xx response on a source just logs a warning and skips it.
+#
+# Note on FAANG / big tech:
+#   Most FAANG and big-tech companies (Meta, Apple, Amazon, Netflix, Google, Microsoft,
+#   Oracle, Salesforce) run on proprietary ATSes or Workday — they will NOT be on
+#   Greenhouse/Lever/Ashby. They're intentionally excluded here. A separate Workday
+#   adapter would be a step 2.5 if/when you want them.
 
-sources: []
-# sources:
-#   - kind: greenhouse
-#     company_slug: anthropic
-#     match_titles: ["software", "engineer", "data", "ml"]
-#   - kind: lever
-#     company_slug: figma
-#     match_titles: ["software", "data"]
-#   - kind: ashby
-#     company_slug: openai
-#     match_titles: ["software", "research engineer"]
-#   - kind: hn_who_is_hiring
-#     match_keywords: ["python", "react", "ml"]
+defaults:
+  match_titles:
+    - software engineer
+    - software developer
+    - backend engineer
+    - frontend engineer
+    - full stack engineer
+    - full-stack engineer
+    - fullstack engineer
+    - web engineer
+    - web developer
+    - data engineer
+    - data scientist
+    - machine learning
+    - ml engineer
+    - research engineer
+    - platform engineer
+    - infrastructure engineer
+    - devops engineer
+    - site reliability
+    - sre
+    - ai engineer
+    - applied scientist
+    - new grad
+    - new graduate
+    - entry level
+    - entry-level
+
+sources:
+  # ────────── AI labs / ML companies ──────────
+  - kind: ashby
+    company_slug: anthropic
+    label: Anthropic
+  - kind: ashby
+    company_slug: openai
+    label: OpenAI
+  - kind: ashby
+    company_slug: perplexity
+    label: Perplexity
+  - kind: ashby
+    company_slug: replit
+    label: Replit
+  - kind: ashby
+    company_slug: modal-labs
+    label: Modal
+  - kind: ashby
+    company_slug: character
+    label: Character.AI
+  - kind: ashby
+    company_slug: groq
+    label: Groq
+  - kind: ashby
+    company_slug: runwayml
+    label: Runway
+  - kind: lever
+    company_slug: mistralai
+    label: Mistral AI
+  - kind: lever
+    company_slug: huggingface
+    label: Hugging Face
+  - kind: greenhouse
+    company_slug: cohere
+    label: Cohere
+  - kind: greenhouse
+    company_slug: scaleai
+    label: Scale AI
+  - kind: greenhouse
+    company_slug: weightsandbiases
+    label: Weights & Biases
+
+  # ────────── Dev tools / Infra ──────────
+  - kind: greenhouse
+    company_slug: vercel
+    label: Vercel
+  - kind: greenhouse
+    company_slug: notion
+    label: Notion
+  - kind: greenhouse
+    company_slug: gitlab
+    label: GitLab
+  - kind: greenhouse
+    company_slug: hashicorp
+    label: HashiCorp
+  - kind: greenhouse
+    company_slug: datadog
+    label: Datadog
+  - kind: greenhouse
+    company_slug: cloudflare
+    label: Cloudflare
+  - kind: greenhouse
+    company_slug: snowflake
+    label: Snowflake
+  - kind: greenhouse
+    company_slug: databricks
+    label: Databricks
+  - kind: greenhouse
+    company_slug: mongodb
+    label: MongoDB
+  - kind: greenhouse
+    company_slug: elastic
+    label: Elastic
+  - kind: greenhouse
+    company_slug: confluent
+    label: Confluent
+  - kind: lever
+    company_slug: anysphere
+    label: Cursor (Anysphere)
+  - kind: lever
+    company_slug: figma
+    label: Figma
+  - kind: ashby
+    company_slug: linear
+    label: Linear
+  - kind: ashby
+    company_slug: supabase
+    label: Supabase
+  - kind: ashby
+    company_slug: posthog
+    label: PostHog
+
+  # ────────── Fintech ──────────
+  - kind: greenhouse
+    company_slug: stripe
+    label: Stripe
+  - kind: greenhouse
+    company_slug: plaid
+    label: Plaid
+  - kind: greenhouse
+    company_slug: brex
+    label: Brex
+  - kind: greenhouse
+    company_slug: ramp
+    label: Ramp
+  - kind: greenhouse
+    company_slug: mercury
+    label: Mercury
+  - kind: greenhouse
+    company_slug: robinhood
+    label: Robinhood
+  - kind: greenhouse
+    company_slug: coinbase
+    label: Coinbase
+  - kind: greenhouse
+    company_slug: gusto
+    label: Gusto
+
+  # ────────── Consumer / marketplaces ──────────
+  - kind: greenhouse
+    company_slug: airbnb
+    label: Airbnb
+  - kind: greenhouse
+    company_slug: doordash
+    label: DoorDash
+  - kind: greenhouse
+    company_slug: pinterest
+    label: Pinterest
+  - kind: greenhouse
+    company_slug: reddit
+    label: Reddit
+  - kind: greenhouse
+    company_slug: twilio
+    label: Twilio
+  - kind: greenhouse
+    company_slug: asana
+    label: Asana
+  - kind: lever
+    company_slug: discord
+    label: Discord
+
+  # ────────── HN Who's Hiring (monthly thread) ──────────
+  - kind: hn_who_is_hiring
+    label: HN Who Is Hiring
+    match_keywords:
+      - python
+      - react
+      - django
+      - typescript
+      - machine learning
+      - new grad
+      - new graduate
+      - entry level

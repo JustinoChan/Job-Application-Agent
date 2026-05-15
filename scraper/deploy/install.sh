@@ -86,6 +86,15 @@ else
     echo "   .env already exists, leaving as-is"
 fi
 
+echo ">>> Setting up watchlist.yaml"
+if [ ! -f "$INSTALL_DIR/scraper/watchlist.yaml" ]; then
+    cp "$INSTALL_DIR/scraper/watchlist.example.yaml" "$INSTALL_DIR/scraper/watchlist.yaml"
+    chown "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR/scraper/watchlist.yaml"
+    echo "   seeded $INSTALL_DIR/scraper/watchlist.yaml from the example — edit to taste"
+else
+    echo "   watchlist.yaml already exists, leaving as-is"
+fi
+
 echo ">>> Installing systemd unit + timer"
 install -m 644 "$INSTALL_DIR/scraper/deploy/scraper.service" /etc/systemd/system/scraper.service
 install -m 644 "$INSTALL_DIR/scraper/deploy/scraper.timer"   /etc/systemd/system/scraper.timer

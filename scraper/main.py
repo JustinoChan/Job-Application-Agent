@@ -1,7 +1,8 @@
 """Job-discovery scraper.
 
-For step 1, this only supports a `--self-test` mode that posts a single
-synthetic job to /api/applications/discover. Real source adapters land in step 2.
+Loads a watchlist, dispatches each entry to its source adapter, and POSTs
+discovered postings to /api/applications/discover. The discover endpoint is
+idempotent, so re-runs of unchanged postings short-circuit to status=exists.
 """
 from __future__ import annotations
 
@@ -9,10 +10,12 @@ import argparse
 import logging
 import sys
 
+import httpx
 import yaml
 
 from scraper.api_client import ApiClient, DiscoveredPosting
 from scraper.config import ScraperConfig, load_config
+from scraper.sources import REGISTRY, WatchlistEntry
 
 log = logging.getLogger("scraper")
 
@@ -37,38 +40,76 @@ SELF_TEST_POSTING = DiscoveredPosting(
 )
 
 
-def _iter_watchlist(config: ScraperConfig) -> list[DiscoveredPosting]:
-    """Step-1 stub: returns no postings. Step 2 will dispatch by `kind`."""
+def _load_watchlist(config: ScraperConfig) -> list[WatchlistEntry]:
     if not config.watchlist_path.exists():
         log.warning("Watchlist not found at %s; nothing to scrape yet", config.watchlist_path)
         return []
     with config.watchlist_path.open("r", encoding="utf-8") as f:
-        watchlist = yaml.safe_load(f) or {}
-    sources = watchlist.get("sources", [])
-    if sources:
-        log.info("Watchlist has %d source(s); adapters not implemented yet (step 2)", len(sources))
-    else:
-        log.info("Watchlist has no sources configured yet")
-    return []
+        raw = yaml.safe_load(f) or {}
+
+    defaults = raw.get("defaults") or {}
+    default_titles = defaults.get("match_titles") or None
+    default_keywords = defaults.get("match_keywords") or None
+
+    sources = raw.get("sources") or []
+    entries: list[WatchlistEntry] = []
+    for idx, src in enumerate(sources):
+        if not isinstance(src, dict) or "kind" not in src:
+            log.warning("watchlist[%d] is missing 'kind'; skipping", idx)
+            continue
+        entries.append(WatchlistEntry(
+            kind=src["kind"],
+            company_slug=src.get("company_slug"),
+            match_titles=src.get("match_titles") or default_titles,
+            match_keywords=src.get("match_keywords") or default_keywords,
+            label=src.get("label"),
+        ))
+    return entries
+
+
+def _scrape_sources(entries: list[WatchlistEntry], http: httpx.Client) -> list[DiscoveredPosting]:
+    out: list[DiscoveredPosting] = []
+    for entry in entries:
+        fn = REGISTRY.get(entry.kind)
+        if not fn:
+            log.warning("unknown source kind '%s' for %s; skipping", entry.kind, entry.display)
+            continue
+        try:
+            items = list(fn(entry, http))
+        except Exception:
+            log.exception("source %s failed", entry.display)
+            continue
+        log.info("source %s yielded %d posting(s)", entry.display, len(items))
+        out.extend(items)
+    return out
 
 
 def run(self_test: bool = False) -> int:
     config = load_config()
     log.info("scraper start  api=%s  dry_run=%s", config.api_base_url, config.dry_run)
-    client = ApiClient(config)
-    try:
-        client.health()
-    except Exception as exc:
-        log.error("health check failed: %s", exc)
-        return 2
+    api = ApiClient(config)
+    if not config.dry_run:
+        try:
+            api.health()
+        except Exception as exc:
+            log.error("health check failed: %s", exc)
+            return 2
 
     postings: list[DiscoveredPosting] = []
     if self_test:
         postings.append(SELF_TEST_POSTING)
-    postings.extend(_iter_watchlist(config))
+
+    entries = _load_watchlist(config)
+    if entries:
+        with httpx.Client(
+            headers={"User-Agent": config.user_agent},
+            timeout=config.request_timeout_seconds,
+        ) as http:
+            postings.extend(_scrape_sources(entries, http))
 
     if not postings:
         log.info("no postings to send; exiting cleanly")
+        api.close()
         return 0
 
     sent = 0
@@ -78,7 +119,7 @@ def run(self_test: bool = False) -> int:
     failed = 0
     for posting in postings:
         try:
-            result = client.discover(posting)
+            result = api.discover(posting)
         except Exception as exc:
             log.error("discover failed for %s / %s: %s", posting.company, posting.title, exc)
             failed += 1
@@ -89,18 +130,18 @@ def run(self_test: bool = False) -> int:
             log.info("saved %s (fit=%.2f, rec=%s)", result.job_id, result.fit_score or 0.0, result.recommendation)
         elif result.status == "exists":
             exists += 1
-            log.info("exists %s (already in tracker)", result.job_id)
+            log.debug("exists %s (already in tracker)", result.job_id)
         elif result.status == "skipped":
             skipped += 1
-            log.info("skipped %s (%s)", result.job_id, result.reason)
+            log.debug("skipped %s (%s)", result.job_id, result.reason)
         elif result.status == "dry-run":
-            log.info("dry-run %s", result.reason)
+            log.debug("dry-run %s", result.reason)
 
     log.info(
         "scraper done  sent=%d saved=%d exists=%d skipped=%d failed=%d",
         sent, saved, exists, skipped, failed,
     )
-    client.close()
+    api.close()
     return 0 if failed == 0 else 1
 
 
