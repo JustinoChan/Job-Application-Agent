@@ -259,9 +259,14 @@ def _score_projects(
         matched_kw_display = [k for k in job.extracted_keywords if _normalize_skill(k, synonym_map) in keyword_overlap]
         matched_theme_display = [t for t in proj.themes if t.lower() in theme_overlap]
 
+        # Keyword overlap drives the score; theme overlap is a small bonus capped
+        # at +0.2 so projects with many themes don't get penalized by the
+        # denominator (the prior formula divided by len(proj_themes), which made
+        # a richly-described project score lower than a sparse one — wrong).
         total_possible = max(len(job_keywords_norm), 1)
-        relevance = (len(keyword_overlap) * 2 + len(theme_overlap)) / (total_possible * 2 + len(proj_themes) if proj_themes else total_possible * 2)
-        relevance = min(relevance, 1.0)
+        keyword_score = len(keyword_overlap) / total_possible
+        theme_bonus = min(0.2, len(theme_overlap) * 0.05)
+        relevance = min(1.0, keyword_score + theme_bonus)
 
         scores.append(ProjectScore(
             project_id=proj.id,
