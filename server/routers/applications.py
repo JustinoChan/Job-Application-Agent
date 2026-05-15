@@ -9,6 +9,8 @@ from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 
 from server import dependencies
 from server.schemas import (
+    BulkArchiveRequest,
+    BulkArchiveResponse,
     ConfirmRequest,
     ConfirmResponse,
     CoverLetterGenerateRequest,
@@ -21,6 +23,9 @@ from server.schemas import (
     PreviewResponse,
     ScrapeRequest,
     ScrapeResponse,
+    SearchResponse,
+    SearchResult,
+    StarRequest,
     StatusUpdateRequest,
     TrackerEntryResponse,
 )
@@ -165,12 +170,68 @@ def confirm_application(request: ConfirmRequest) -> ConfirmResponse:
     return ConfirmResponse.model_validate(result)
 
 
+@router.post("/bulk-archive", response_model=BulkArchiveResponse)
+def bulk_archive(request: BulkArchiveRequest):
+    """Set status=archived for many applications at once."""
+    if not request.job_ids:
+        return BulkArchiveResponse(updated=0)
+    updated = tracker.bulk_update_status(
+        config.TRACKER_PATH, request.job_ids, TrackerStatus.ARCHIVED,
+    )
+    return BulkArchiveResponse(updated=updated)
+
+
+@router.get("/search", response_model=SearchResponse)
+def search_postings(q: str = Query(min_length=2)):
+    """Case-insensitive substring search across saved raw posting texts."""
+    needle = q.lower()
+    matches: list[SearchResult] = []
+    for entry in tracker.list_entries(config.TRACKER_PATH):
+        raw_path = config.JOBS_RAW_DIR / f"{entry.job_id}.txt"
+        if not raw_path.exists():
+            continue
+        try:
+            text = raw_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        idx = text.lower().find(needle)
+        if idx < 0:
+            continue
+        start = max(0, idx - 80)
+        end = min(len(text), idx + len(q) + 120)
+        snippet = text[start:end].replace("\n", " ").strip()
+        matches.append(SearchResult(
+            job_id=entry.job_id,
+            company=entry.company,
+            role=entry.role,
+            status=entry.status,
+            fit_score=entry.fit_score,
+            snippet=snippet,
+        ))
+    return SearchResponse(query=q, matches=matches)
+
+
 @router.get("/{job_id}", response_model=TrackerEntryResponse)
 def get_application(job_id: str):
     entry = tracker.get_entry(config.TRACKER_PATH, job_id)
     if entry is None:
         raise HTTPException(status_code=404, detail="Application not found.")
     return entry
+
+
+@router.put("/{job_id}/star", response_model=TrackerEntryResponse)
+def set_star(job_id: str, request: StarRequest):
+    """Toggle the starred flag on a single application."""
+    entry = tracker.get_entry(config.TRACKER_PATH, job_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    tracker.update_status(
+        config.TRACKER_PATH, job_id, entry.status, starred=request.starred,
+    )
+    refreshed = tracker.get_entry(config.TRACKER_PATH, job_id)
+    if refreshed is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return refreshed
 
 
 @router.put("/{job_id}/status", response_model=TrackerEntryResponse)

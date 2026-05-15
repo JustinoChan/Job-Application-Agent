@@ -240,4 +240,5 @@ class TrackerEntry(BaseModel):
     latest_resume_version: Optional[int] = None
     notes: Optional[str] = None
     next_action: Optional[str] = None
+    starred: bool = False
     date_updated: date = Field(default_factory=date.today)

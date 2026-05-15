@@ -24,7 +24,22 @@ export interface TrackerEntry {
   latest_resume_version?: number | null;
   notes?: string | null;
   next_action?: string | null;
+  starred?: boolean;
   date_updated: string;
+}
+
+export interface SearchResult {
+  job_id: string;
+  company: string;
+  role: string;
+  status: TrackerStatus;
+  fit_score?: number | null;
+  snippet: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  matches: SearchResult[];
 }
 
 export interface DashboardStats {

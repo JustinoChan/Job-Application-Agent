@@ -22,6 +22,7 @@ class TrackerEntryResponse(BaseModel):
     latest_resume_version: int | None = None
     notes: str | None = None
     next_action: str | None = None
+    starred: bool = False
     date_updated: date
 
 
@@ -127,3 +128,29 @@ class DiscoverResponse(BaseModel):
     fit_score: float | None = None
     recommendation: str | None = None
     reason: str | None = None
+
+
+class StarRequest(BaseModel):
+    starred: bool
+
+
+class BulkArchiveRequest(BaseModel):
+    job_ids: list[str]
+
+
+class BulkArchiveResponse(BaseModel):
+    updated: int
+
+
+class SearchResult(BaseModel):
+    job_id: str
+    company: str
+    role: str
+    status: TrackerStatus
+    fit_score: float | None = None
+    snippet: str
+
+
+class SearchResponse(BaseModel):
+    query: str
+    matches: list[SearchResult]

@@ -27,6 +27,7 @@ TRACKER_COLUMNS = [
     "latest_resume_version",
     "notes",
     "next_action",
+    "starred",
     "date_updated",
 ]
 
@@ -70,6 +71,7 @@ def update_status(
     latest_resume_version: int | None = None,
     fit_score: float | None = None,
     cover_letter_path: str | None = None,
+    starred: bool | None = None,
 ) -> bool:
     with tracker_lock():
         if not tracker_path.exists():
@@ -95,6 +97,8 @@ def update_status(
                         row["fit_score"] = str(fit_score)
                     if cover_letter_path:
                         row["cover_letter_path"] = cover_letter_path
+                    if starred is not None:
+                        row["starred"] = "1" if starred else "0"
                     found = True
                 rows.append(row)
 
@@ -105,6 +109,38 @@ def update_status(
                 writer.writerows(rows)
 
         return found
+
+
+def bulk_update_status(
+    tracker_path: Path,
+    job_ids: list[str],
+    new_status: TrackerStatus,
+) -> int:
+    """Set status=new_status for every row whose job_id is in job_ids. Returns count updated."""
+    target = set(job_ids)
+    if not target:
+        return 0
+    with tracker_lock():
+        if not tracker_path.exists():
+            return 0
+        rows: list[dict] = []
+        updated = 0
+        today = date.today().isoformat()
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["job_id"] in target:
+                    row["status"] = new_status.value
+                    row["date_updated"] = today
+                    updated += 1
+                rows.append(row)
+
+        if updated:
+            with open(tracker_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
+                writer.writeheader()
+                writer.writerows(rows)
+        return updated
 
 
 def job_id_exists(tracker_path: Path, job_id: str) -> bool:
@@ -223,6 +259,7 @@ def _entry_to_row(entry: TrackerEntry) -> dict:
         "latest_resume_version": str(entry.latest_resume_version) if entry.latest_resume_version is not None else "",
         "notes": entry.notes or "",
         "next_action": entry.next_action or "",
+        "starred": "1" if entry.starred else "0",
         "date_updated": entry.date_updated.isoformat(),
     }
 
@@ -230,6 +267,7 @@ def _entry_to_row(entry: TrackerEntry) -> dict:
 def _row_to_entry(row: dict) -> TrackerEntry:
     fit = row.get("fit_score", "")
     ver = row.get("latest_resume_version", "")
+    starred_raw = (row.get("starred") or "").strip().lower()
     return TrackerEntry(
         job_id=row["job_id"],
         date_added=date.fromisoformat(row["date_added"]),
@@ -244,5 +282,6 @@ def _row_to_entry(row: dict) -> TrackerEntry:
         latest_resume_version=int(ver) if ver else None,
         notes=row.get("notes") or None,
         next_action=row.get("next_action") or None,
+        starred=starred_raw in {"1", "true", "yes"},
         date_updated=date.fromisoformat(row.get("date_updated", date.today().isoformat())),
     )

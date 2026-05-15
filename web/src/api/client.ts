@@ -7,6 +7,7 @@ import type {
   OpenClawStatus,
   PreviewResponse,
   ScrapeResponse,
+  SearchResponse,
   TrackerEntry,
   TrackerStatus
 } from "./types";
@@ -79,6 +80,23 @@ export async function updateStatus(
   notes?: string
 ): Promise<TrackerEntry> {
   const response = await api.put<TrackerEntry>(`/applications/${jobId}/status`, { status, notes });
+  return response.data;
+}
+
+export async function toggleStar(jobId: string, starred: boolean): Promise<TrackerEntry> {
+  const response = await api.put<TrackerEntry>(`/applications/${jobId}/star`, { starred });
+  return response.data;
+}
+
+export async function bulkArchive(jobIds: string[]): Promise<{ updated: number }> {
+  const response = await api.post<{ updated: number }>("/applications/bulk-archive", { job_ids: jobIds });
+  return response.data;
+}
+
+export async function searchPostings(query: string): Promise<SearchResponse> {
+  const response = await api.get<SearchResponse>("/applications/search", {
+    params: { q: query }
+  });
   return response.data;
 }
 
