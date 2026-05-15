@@ -16,6 +16,7 @@ console = Console()
 TRACKER_COLUMNS = [
     "job_id",
     "date_added",
+    "posted_at",
     "company",
     "role",
     "url",
@@ -46,12 +47,20 @@ def _ensure_tracker_exists_unlocked(tracker_path: Path) -> None:
             writer.writerow(TRACKER_COLUMNS)
 
 
+_COLUMN_DEFAULTS: dict[str, str] = {
+    "starred": "0",
+    "posted_at": "",
+}
+
+
 def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
     """Bring tracker.csv up to the current TRACKER_COLUMNS layout in one pass.
 
-    Handles two legacy shapes that can coexist in the same file:
-    - rows written when there were no `starred` column (one short)
-    - rows written under a stale header that lacks `starred`
+    Header-agnostic: maps each row's values via the file's own header line
+    (when row length matches that header) and fills in any TRACKER_COLUMNS
+    keys that didn't exist before with sensible defaults. This way every
+    future column addition gets handled by a single _COLUMN_DEFAULTS entry,
+    not a new code path.
     """
     if not tracker_path.exists():
         return
@@ -65,30 +74,29 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
             return
         body = list(reader)
 
-    starred_idx = TRACKER_COLUMNS.index("starred")
     normalized: list[dict[str, str]] = []
     for raw_row in body:
         if not raw_row:
             continue
-        if len(raw_row) == len(TRACKER_COLUMNS):
+        if len(raw_row) == len(header):
+            row = dict(zip(header, raw_row))
+        elif len(raw_row) == len(TRACKER_COLUMNS):
+            # Row was written under the current schema even though the file
+            # header is stale; trust the positional match against the
+            # current column list.
             row = dict(zip(TRACKER_COLUMNS, raw_row))
-        elif len(raw_row) == len(TRACKER_COLUMNS) - 1:
-            # Old row missing the starred column — insert "0" in the right slot
-            patched = list(raw_row[:starred_idx]) + ["0"] + list(raw_row[starred_idx:])
-            row = dict(zip(TRACKER_COLUMNS, patched))
         else:
-            # Best-effort: map what we can from the old header, default the rest
-            mapped = {k: v for k, v in zip(header, raw_row)}
-            row = {col: mapped.get(col, "") for col in TRACKER_COLUMNS}
-            if not row.get("starred"):
-                row["starred"] = "0"
-        normalized.append(row)
+            # Pad or truncate against the header line as a best-effort.
+            padded = list(raw_row) + [""] * (len(header) - len(raw_row))
+            row = dict(zip(header, padded[: len(header)]))
+        result = {col: row.get(col, _COLUMN_DEFAULTS.get(col, "")) for col in TRACKER_COLUMNS}
+        normalized.append(result)
 
     with open(tracker_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
         writer.writeheader()
         for row in normalized:
-            writer.writerow({k: row.get(k, "") for k in TRACKER_COLUMNS})
+            writer.writerow(row)
 
 
 def generate_job_id(company: str, title: str) -> str:
@@ -301,6 +309,7 @@ def _entry_to_row(entry: TrackerEntry) -> dict:
     return {
         "job_id": entry.job_id,
         "date_added": entry.date_added.isoformat(),
+        "posted_at": entry.posted_at.isoformat() if entry.posted_at else "",
         "company": entry.company,
         "role": entry.role,
         "url": entry.url or "",
@@ -321,9 +330,11 @@ def _row_to_entry(row: dict) -> TrackerEntry:
     fit = row.get("fit_score", "")
     ver = row.get("latest_resume_version", "")
     starred_raw = (row.get("starred") or "").strip().lower()
+    posted_raw = (row.get("posted_at") or "").strip()
     return TrackerEntry(
         job_id=row["job_id"],
         date_added=date.fromisoformat(row["date_added"]),
+        posted_at=date.fromisoformat(posted_raw) if posted_raw else None,
         company=row["company"],
         role=row["role"],
         url=row.get("url") or None,

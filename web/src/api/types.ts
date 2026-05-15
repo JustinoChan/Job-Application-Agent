@@ -13,6 +13,7 @@ export type TrackerStatus =
 export interface TrackerEntry {
   job_id: string;
   date_added: string;
+  posted_at?: string | null;
   company: string;
   role: string;
   url?: string | null;

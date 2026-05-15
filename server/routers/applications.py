@@ -128,6 +128,7 @@ def discover_application(request: DiscoverRequest) -> DiscoverResponse:
     entry = TrackerEntry(
         job_id=job_id,
         date_added=date.today(),
+        posted_at=request.posted_at,
         company=request.company,
         role=request.title,
         url=request.url,

@@ -15,6 +15,7 @@ import httpx
 
 from scraper.api_client import DiscoveredPosting
 from scraper.sources import WatchlistEntry, register
+from scraper.sources._date import parse_iso_date
 from scraper.sources._html import html_to_text
 from scraper.sources._match import keyword_matches
 
@@ -59,12 +60,14 @@ def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[Discove
         if not company:
             continue
         url = _extract_first_url(text) or f"https://news.ycombinator.com/item?id={kid.get('id')}"
+        posted_at = parse_iso_date(kid.get("created_at"))
         yield DiscoveredPosting(
             company=company,
             title=title or "(see post)",
             url=url,
             raw_text=text,
             source=f"hn:{story_id}",
+            posted_at=posted_at,
         )
 
 

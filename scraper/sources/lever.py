@@ -8,6 +8,7 @@ import httpx
 
 from scraper.api_client import DiscoveredPosting
 from scraper.sources import WatchlistEntry, register
+from scraper.sources._date import parse_epoch_ms
 from scraper.sources._match import title_matches
 
 log = logging.getLogger(__name__)
@@ -47,12 +48,14 @@ def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[Discove
         )
         additional = post.get("additionalPlain") or ""
         raw_text = _compose_text(title, company_name, location, description, lists_text, additional)
+        posted_at = parse_epoch_ms(post.get("createdAt"))
         yield DiscoveredPosting(
             company=company_name,
             title=title,
             url=link,
             raw_text=raw_text,
             source=f"lever:{entry.company_slug}",
+            posted_at=posted_at,
         )
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 import httpx
@@ -15,6 +16,7 @@ class DiscoveredPosting:
     url: str
     raw_text: str
     source: str | None = None
+    posted_at: date | None = None
 
 
 @dataclass
@@ -64,6 +66,7 @@ class ApiClient:
                 "url": posting.url,
                 "raw_text": posting.raw_text,
                 "source": posting.source,
+                "posted_at": posting.posted_at.isoformat() if posting.posted_at else None,
             },
         )
         resp.raise_for_status()

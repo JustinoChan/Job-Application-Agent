@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import type { TrackerEntry } from "../api/types";
 import StatusBadge from "./StatusBadge";
 
-type SortKey = "company" | "role" | "status" | "fit_score" | "date_updated" | "starred";
+type SortKey = "company" | "role" | "status" | "fit_score" | "posted_at" | "date_updated" | "starred";
 type SortDir = "asc" | "desc";
 
 interface Props {
@@ -19,6 +19,7 @@ const SORTABLE: Array<{ key: SortKey; label: string }> = [
   { key: "role", label: "Role" },
   { key: "status", label: "Status" },
   { key: "fit_score", label: "Fit" },
+  { key: "posted_at", label: "Posted" },
   { key: "date_updated", label: "Updated" }
 ];
 
@@ -116,6 +117,7 @@ export default function ApplicationTable({ applications, selectedIds, onSelectio
             <td>{app.role}</td>
             <td><StatusBadge status={app.status} /></td>
             <td>{app.fit_score == null ? "-" : `${Math.round(app.fit_score * 100)}%`}</td>
+            <td>{app.posted_at || "-"}</td>
             <td>{app.date_updated}</td>
             <td>{app.audit_verdict || "-"}</td>
             <td>{app.latest_resume_version ? `v${String(app.latest_resume_version).padStart(3, "0")}` : "-"}</td>
@@ -137,6 +139,8 @@ function compare(a: TrackerEntry, b: TrackerEntry, key: SortKey, dir: SortDir): 
       return sign * a.status.localeCompare(b.status);
     case "fit_score":
       return sign * ((a.fit_score ?? -1) - (b.fit_score ?? -1));
+    case "posted_at":
+      return sign * ((a.posted_at || "").localeCompare(b.posted_at || ""));
     case "date_updated":
       return sign * a.date_updated.localeCompare(b.date_updated);
     case "starred":

@@ -229,6 +229,7 @@ class TrackerStatus(str, Enum):
 class TrackerEntry(BaseModel):
     job_id: str
     date_added: date
+    posted_at: Optional[date] = None
     company: str
     role: str
     url: Optional[str] = None

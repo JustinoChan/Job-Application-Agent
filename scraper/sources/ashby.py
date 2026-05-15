@@ -8,6 +8,7 @@ import httpx
 
 from scraper.api_client import DiscoveredPosting
 from scraper.sources import WatchlistEntry, register
+from scraper.sources._date import parse_iso_date
 from scraper.sources._html import html_to_text
 from scraper.sources._match import title_matches
 
@@ -42,12 +43,14 @@ def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[Discove
         location = job.get("locationName") or ""
         body = html_to_text(job.get("descriptionHtml") or job.get("description") or "")
         raw_text = _compose_text(title, company_name, location, body)
+        posted_at = parse_iso_date(job.get("publishedAt") or job.get("updatedAt"))
         yield DiscoveredPosting(
             company=company_name,
             title=title,
             url=link,
             raw_text=raw_text,
             source=f"ashby:{entry.company_slug}",
+            posted_at=posted_at,
         )
 
 

@@ -11,6 +11,7 @@ from src.models import AuditReport, FitScore, TrackerStatus
 class TrackerEntryResponse(BaseModel):
     job_id: str
     date_added: date
+    posted_at: date | None = None
     company: str
     role: str
     url: str | None = None
@@ -120,6 +121,7 @@ class DiscoverRequest(BaseModel):
     url: str
     raw_text: str
     source: str | None = None
+    posted_at: date | None = None
 
 
 class DiscoverResponse(BaseModel):
