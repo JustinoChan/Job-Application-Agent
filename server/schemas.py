@@ -156,6 +156,11 @@ class JobAnalysisResponse(BaseModel):
     responsibilities: list[str]
     extracted_keywords: list[str]
     fit_score: FitScore
+    # Best-effort metadata extracted from the saved raw text.
+    contact_emails: list[str] = []
+    apply_urls: list[str] = []
+    salary_mentions: list[str] = []
+    raw_excerpt: str | None = None
 
 
 class TailorResponse(BaseModel):

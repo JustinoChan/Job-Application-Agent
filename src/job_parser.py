@@ -143,11 +143,23 @@ def _extract_company_and_title(text: str) -> tuple[str, str]:
 
 _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("requirements", re.compile(
-        r"^(?:requirements?|(?:basic|required|minimum)\s+qualifications?|qualifications?|what\s+you.+need|must[\s\-]?have|who\s+you\s+are|what\s+we.+looking)",
+        r"^(?:"
+        r"(?:core\s+|key\s+|main\s+)?requirements?"
+        r"|(?:basic|required|minimum|core|key)\s+qualifications?"
+        r"|qualifications?"
+        r"|what\s+you.+need"
+        r"|must[\s\-]?have"
+        r"|who\s+you\s+are"
+        r"|what\s+we.+looking"
+        r"|we['’]?re\s+looking\s+for"
+        r"|looking\s+for"
+        r"|skills?\s+(?:and|&)\s+experience"
+        r"|your\s+(?:experience|skills)"
+        r")",
         re.IGNORECASE,
     )),
     ("responsibilities", re.compile(
-        r"^(?:(?:key\s+job\s+)?responsibilit|what\s+you.+do|the\s+role|about\s+the\s+role|in\s+this\s+role|you\s+will|your\s+impact)",
+        r"^(?:(?:key\s+job\s+)?responsibilit|what\s+you.+do|the\s+role|about\s+the\s+role|in\s+this\s+role|you\s+will|your\s+impact|day[\s\-]to[\s\-]day)",
         re.IGNORECASE,
     )),
     ("nice_to_have", re.compile(
@@ -155,7 +167,7 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         re.IGNORECASE,
     )),
     ("about", re.compile(
-        r"^(?:description|about\s+(?:us|the\s+company)|who\s+we\s+are|our\s+(?:mission|team))",
+        r"^(?:description|about\s+(?:us|the\s+company|the\s+role)|who\s+we\s+are|our\s+(?:mission|team|story|company))",
         re.IGNORECASE,
     )),
     ("benefits", re.compile(

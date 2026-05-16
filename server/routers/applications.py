@@ -7,6 +7,8 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 
+import re
+
 from server import dependencies
 from server.schemas import (
     BulkArchiveRequest,
@@ -36,6 +38,63 @@ from src.filelock import version_lock
 from src.models import AuditVerdict, TrackerEntry, TrackerStatus
 
 router = APIRouter(prefix="/applications", tags=["applications"])
+
+_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
+_URL_RE = re.compile(r"https?://[^\s<>'\"\)\]]+")
+# Salary mentions: explicit ranges with $/€/£, k-suffixed numbers, or
+# /yr|/year tokens. Conservative — false positives degrade the UI less
+# than missing real salary info.
+_SALARY_RE = re.compile(
+    r"(?ix)"
+    r"(?:[\$€£]\s?\d{2,3}(?:[,\.]\d{3})?(?:\s?[-–to]+\s?[\$€£]?\s?\d{2,3}(?:[,\.]\d{3})?)?(?:\s?(?:k|/yr|/year|per\s+year|annually))?)"
+    r"|(?:\b\d{2,3}\s?k(?:\s?[-–to]+\s?\d{2,3}\s?k)?\b(?:\s?(?:/yr|/year|per\s+year|annually))?)"
+    r"|(?:\bsalary[: ]\s?[\$€£]?\s?\d[\d,\. -]{1,20})"
+)
+
+
+def _extract_emails(text: str) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _EMAIL_RE.findall(text):
+        low = m.lower()
+        if low in seen:
+            continue
+        seen.add(low)
+        out.append(m)
+        if len(out) >= 5:
+            break
+    return out
+
+
+def _extract_apply_urls(text: str, exclude: str | None) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    excl = (exclude or "").rstrip("/")
+    for m in _URL_RE.findall(text):
+        clean = m.rstrip(".,;:)")
+        if clean.rstrip("/") == excl:
+            continue
+        if clean in seen:
+            continue
+        seen.add(clean)
+        out.append(clean)
+        if len(out) >= 5:
+            break
+    return out
+
+
+def _extract_salary_mentions(text: str) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _SALARY_RE.findall(text):
+        m = m.strip()
+        if not m or m in seen:
+            continue
+        seen.add(m)
+        out.append(m)
+        if len(out) >= 4:
+            break
+    return out
 
 
 @router.get("/", response_model=list[TrackerEntryResponse])
@@ -289,6 +348,10 @@ def get_job_analysis(job_id: str) -> JobAnalysisResponse:
     )
     fit = fit_scorer.score_fit(job, profile, projects, rules)
 
+    excerpt = raw_text.strip()
+    if len(excerpt) > 600:
+        excerpt = excerpt[:600].rstrip() + "..."
+
     return JobAnalysisResponse(
         job_id=job_id,
         company=entry.company,
@@ -301,6 +364,10 @@ def get_job_analysis(job_id: str) -> JobAnalysisResponse:
         responsibilities=job.responsibilities,
         extracted_keywords=job.extracted_keywords,
         fit_score=fit,
+        contact_emails=_extract_emails(raw_text),
+        apply_urls=_extract_apply_urls(raw_text, entry.url),
+        salary_mentions=_extract_salary_mentions(raw_text),
+        raw_excerpt=excerpt,
     )
 
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   coverLetterHtmlUrl,
@@ -201,6 +201,43 @@ export default function JobDetail() {
           {analysis ? (
             <>
               <FitScoreDisplay fit={analysis.fit_score} />
+
+              {(analysis.contact_emails?.length || analysis.apply_urls?.length || analysis.salary_mentions?.length) ? (
+                <div className="info-panel">
+                  <h3>Key details</h3>
+                  <div className="kv-grid">
+                    {analysis.salary_mentions && analysis.salary_mentions.length > 0 && (
+                      <>
+                        <div className="kv-label">Compensation</div>
+                        <div className="kv-value">{analysis.salary_mentions.join(" · ")}</div>
+                      </>
+                    )}
+                    {analysis.contact_emails && analysis.contact_emails.length > 0 && (
+                      <>
+                        <div className="kv-label">Contact</div>
+                        <div className="kv-value">
+                          {analysis.contact_emails.map((e) => (
+                            <a key={e} href={`mailto:${e}`}>{e}</a>
+                          )).reduce<React.ReactNode[]>((acc, el, i) => acc.concat(i ? [", ", el] : [el]), [])}
+                        </div>
+                      </>
+                    )}
+                    {analysis.apply_urls && analysis.apply_urls.length > 0 && (
+                      <>
+                        <div className="kv-label">Apply / links</div>
+                        <div className="kv-value">
+                          <ul className="link-list">
+                            {analysis.apply_urls.map((u) => (
+                              <li key={u}><a href={u} target="_blank" rel="noreferrer">{u}</a></li>
+                            ))}
+                          </ul>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
               {analysis.fit_score.missing_nice_to_haves.length > 0 && (
                 <div className="info-panel">
                   <h3>Nice-to-haves missing</h3>
@@ -243,6 +280,13 @@ export default function JobDetail() {
                   <ul className="bullet-list">
                     {analysis.responsibilities.map((line, i) => <li key={i}>{line}</li>)}
                   </ul>
+                </div>
+              )}
+              {analysis.raw_excerpt && analysis.requirements.length === 0 && analysis.responsibilities.length === 0 && (
+                <div className="info-panel">
+                  <h3>Posting excerpt</h3>
+                  <p className="excerpt">{analysis.raw_excerpt}</p>
+                  <p><small>No structured sections detected — see the Job Posting tab for the full text.</small></p>
                 </div>
               )}
             </>

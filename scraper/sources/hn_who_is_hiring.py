@@ -21,9 +21,15 @@ from scraper.sources._match import keyword_matches
 
 log = logging.getLogger(__name__)
 
-_SEARCH_URL = "https://hn.algolia.com/api/v1/search"
+_SEARCH_BY_DATE_URL = "https://hn.algolia.com/api/v1/search_by_date"
 _ITEM_URL_TPL = "https://hn.algolia.com/api/v1/items/{id}"
 _URL_RE = re.compile(r"https?://[^\s<>'\"]+")
+_MONTHLY_TITLE_RE = re.compile(
+    r"who\s+is\s+hiring\?\s*\(\s*"
+    r"(?:january|february|march|april|may|june|july|august|september|october|november|december)"
+    r"\s+\d{4}\s*\)",
+    re.IGNORECASE,
+)
 
 # HN "Who is hiring" headers follow a `Company | ... | ...` convention but
 # the order beyond slot 0 is not standardized. We detect which slot is the
@@ -41,6 +47,22 @@ _EMPLOYMENT_RE = re.compile(
 )
 _COMP_RE = re.compile(r"(?i)\$|salary|comp(?:ensation)?|equity|\bk\b|/yr|/year")
 _SPONSOR_RE = re.compile(r"(?i)visa|h[\s\-]?1b|sponsor|no\s+sponsor")
+# Strong signal for "this slot is a job title" — most HN postings use one
+# of these words. Used to prefer the right slot when the header is
+# `Company | Description | Location | Title` rather than the textbook order.
+_ROLE_KEYWORD_RE = re.compile(
+    r"(?i)\b("
+    r"engineer|engineering|developer|programmer|coder|"
+    r"scientist|analyst|researcher|architect|designer|"
+    r"manager|lead|director|head|chief|principal|staff|"
+    r"founder|cto|cfo|ceo|vp|"
+    r"intern(?:ship)?|consultant|specialist|advisor|"
+    r"frontend|backend|full[\s\-]?stack|fullstack|"
+    r"devops|sre|reliability|platform|infra(?:structure)?|"
+    r"ml|ai|data|qa|test|security|"
+    r"writer|editor|recruiter|operations"
+    r")\b"
+)
 
 
 @register("hn_who_is_hiring")
@@ -94,8 +116,15 @@ def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[Discove
 
 
 def _find_latest_thread(http: httpx.Client) -> dict | None:
+    """Find the most recent 'Ask HN: Who is hiring? (Month YYYY)' thread.
+
+    Algolia's `/search` is relevance-ranked, which surfaces the
+    high-upvote 2020 "Who is hiring right now?" thread instead of the
+    current monthly one. `/search_by_date` is sorted by `created_at`
+    desc, so the latest monthly thread is first.
+    """
     resp = http.get(
-        _SEARCH_URL,
+        _SEARCH_BY_DATE_URL,
         params={
             "tags": "story,author_whoishiring",
             "query": "hiring",
@@ -105,8 +134,8 @@ def _find_latest_thread(http: httpx.Client) -> dict | None:
     resp.raise_for_status()
     hits = resp.json().get("hits", [])
     for hit in hits:
-        title = (hit.get("title") or "").lower()
-        if "who is hiring" in title:
+        title = hit.get("title") or ""
+        if _MONTHLY_TITLE_RE.search(title):
             return hit
     return None
 
@@ -129,18 +158,27 @@ def _parse_header(comment_text: str) -> tuple[str, str, str]:
 
     location = ""
     title = ""
+    fallback_title = ""
     for slot in parts[1:]:
         is_location = bool(_LOCATION_RE.search(slot))
         is_employment = bool(_EMPLOYMENT_RE.search(slot))
         is_comp = bool(_COMP_RE.search(slot))
         is_sponsor = bool(_SPONSOR_RE.search(slot))
+        is_long_prose = len(slot) > 80  # likely a company description, not a title
         if not location and is_location:
             location = slot
             continue
-        if not title and not (is_location or is_employment or is_comp or is_sponsor):
+        if is_employment or is_comp or is_sponsor or is_location:
+            continue
+        # Strong signal: a role keyword wins regardless of slot order.
+        if not title and _ROLE_KEYWORD_RE.search(slot):
             title = slot
+            continue
+        # Fallback: first non-disqualified, non-prose slot if no role keyword found.
+        if not fallback_title and not is_long_prose:
+            fallback_title = slot
 
-    return company, title or "(see post)", location
+    return company, title or fallback_title or "(see post)", location
 
 
 def _extract_first_url(text: str) -> str:

@@ -43,6 +43,10 @@ export interface JobAnalysis {
   responsibilities: string[];
   extracted_keywords: string[];
   fit_score: FitScore;
+  contact_emails?: string[];
+  apply_urls?: string[];
+  salary_mentions?: string[];
+  raw_excerpt?: string | null;
 }
 
 export interface TailorResult {

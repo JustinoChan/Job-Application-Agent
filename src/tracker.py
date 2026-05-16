@@ -56,6 +56,12 @@ _COLUMN_DEFAULTS: dict[str, str] = {
     "source": "",
 }
 
+# Old scraper code wrote the source identifier (e.g. `hn:22665398`) into
+# the `notes` column, which destroyed manual notes on first edit. New
+# code uses the dedicated `source` column; this regex identifies legacy
+# notes values that should migrate over.
+_LEGACY_SOURCE_NOTES_RE = re.compile(r"^(hn|greenhouse|lever|ashby):", re.IGNORECASE)
+
 
 def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
     """Bring tracker.csv up to the current TRACKER_COLUMNS layout in one pass.
@@ -64,7 +70,9 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
     (when row length matches that header) and fills in any TRACKER_COLUMNS
     keys that didn't exist before with sensible defaults. This way every
     future column addition gets handled by a single _COLUMN_DEFAULTS entry,
-    not a new code path.
+    not a new code path. Also performs idempotent data-cleanup passes
+    (e.g. moving legacy scraper source out of the notes column) even when
+    the header itself is already current.
     """
     if not tracker_path.exists():
         return
@@ -74,9 +82,12 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
             header = next(reader)
         except StopIteration:
             return
-        if header == TRACKER_COLUMNS:
-            return
         body = list(reader)
+
+    header_current = header == TRACKER_COLUMNS
+    needs_data_cleanup = _body_needs_cleanup(header, body)
+    if header_current and not needs_data_cleanup:
+        return
 
     normalized: list[dict[str, str]] = []
     for raw_row in body:
@@ -94,6 +105,11 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
             padded = list(raw_row) + [""] * (len(header) - len(raw_row))
             row = dict(zip(header, padded[: len(header)]))
         result = {col: row.get(col, _COLUMN_DEFAULTS.get(col, "")) for col in TRACKER_COLUMNS}
+        # Move legacy scraper-source values out of `notes` into `source`
+        # so manual notes have somewhere clean to live.
+        if not result.get("source") and _LEGACY_SOURCE_NOTES_RE.match(result.get("notes", "")):
+            result["source"] = result["notes"]
+            result["notes"] = ""
         normalized.append(result)
 
     with open(tracker_path, "w", newline="", encoding="utf-8") as f:
@@ -101,6 +117,26 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
         writer.writeheader()
         for row in normalized:
             writer.writerow(row)
+
+
+def _body_needs_cleanup(header: list[str], body: list[list[str]]) -> bool:
+    """Detect rows that still have legacy scraper source in `notes`."""
+    if "notes" not in header:
+        return False
+    notes_idx = header.index("notes")
+    source_idx = header.index("source") if "source" in header else None
+    for raw_row in body:
+        if not raw_row or len(raw_row) <= notes_idx:
+            continue
+        notes = (raw_row[notes_idx] or "").strip()
+        if not notes or not _LEGACY_SOURCE_NOTES_RE.match(notes):
+            continue
+        existing_source = ""
+        if source_idx is not None and len(raw_row) > source_idx:
+            existing_source = (raw_row[source_idx] or "").strip()
+        if not existing_source:
+            return True
+    return False
 
 
 def generate_job_id(company: str, title: str) -> str:

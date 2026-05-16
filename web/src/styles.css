@@ -450,6 +450,41 @@ label {
   margin: 4px 0;
 }
 
+.kv-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  align-items: start;
+}
+
+.kv-label {
+  color: #57534e;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.kv-value {
+  word-break: break-word;
+}
+
+.link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.link-list li {
+  margin: 2px 0;
+}
+
+.excerpt {
+  background: #faf7f3;
+  border-left: 3px solid #d6d3d1;
+  margin: 0 0 8px 0;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+}
+
 .tabs {
   display: flex;
   gap: 8px;
