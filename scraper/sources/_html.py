@@ -19,9 +19,14 @@ _NEWLINES_RE = re.compile(r"\n{3,}")
 def html_to_text(html: str | None) -> str:
     if not html:
         return ""
-    text = _BLOCK_BREAK_RE.sub("\n", html)
+    # Unescape FIRST so HTML-encoded HTML (e.g. `&lt;p&gt;Hello&lt;/p&gt;`,
+    # which Greenhouse returns for some boards) is decoded into real tags
+    # before we strip them. Otherwise the regex finds nothing to strip,
+    # `unescape` decodes the entities afterwards, and literal `<p>...`
+    # bleeds into the output.
+    text = unescape(html)
+    text = _BLOCK_BREAK_RE.sub("\n", text)
     text = _TAG_RE.sub("", text)
-    text = unescape(text)
     text = _HSPACE_RE.sub(" ", text)
     text = _NEWLINES_RE.sub("\n\n", text)
     lines = [line.strip() for line in text.splitlines()]

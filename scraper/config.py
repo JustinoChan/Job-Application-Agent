@@ -21,6 +21,11 @@ class ScraperConfig:
     # via scraper.politeness.Politeness.
     inter_request_delay_seconds: float
     max_retries: int
+    # Posting freshness: reject postings older than this many days. Set to
+    # 0 to disable. Defaults to 30 — most boards re-list active roles
+    # frequently enough that anything older is likely stale or already
+    # closed.
+    max_posting_age_days: int
 
 
 def load_config() -> ScraperConfig:
@@ -50,4 +55,5 @@ def load_config() -> ScraperConfig:
         dry_run=os.environ.get("DRY_RUN", "false").lower() in {"1", "true", "yes"},
         inter_request_delay_seconds=float(os.environ.get("INTER_REQUEST_DELAY_SECONDS", "1.0")),
         max_retries=int(os.environ.get("MAX_RETRIES", "3")),
+        max_posting_age_days=int(os.environ.get("MAX_POSTING_AGE_DAYS", "30")),
     )
