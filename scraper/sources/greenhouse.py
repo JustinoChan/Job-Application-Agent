@@ -7,6 +7,7 @@ from typing import Iterable
 import httpx
 
 from scraper.api_client import DiscoveredPosting
+from scraper.politeness import Politeness
 from scraper.sources import WatchlistEntry, register
 from scraper.sources._date import parse_iso_date
 from scraper.sources._html import html_to_text
@@ -16,13 +17,13 @@ log = logging.getLogger(__name__)
 
 
 @register("greenhouse")
-def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[DiscoveredPosting]:
+def iter_postings(entry: WatchlistEntry, http: httpx.Client, politeness: Politeness) -> Iterable[DiscoveredPosting]:
     if not entry.company_slug:
         log.warning("greenhouse entry missing company_slug; skipping")
         return
     url = f"https://boards-api.greenhouse.io/v1/boards/{entry.company_slug}/jobs?content=true"
     try:
-        resp = http.get(url)
+        resp = politeness.get(http, url)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         log.warning("greenhouse fetch failed for %s: %s", entry.company_slug, exc)

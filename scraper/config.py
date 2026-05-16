@@ -17,6 +17,10 @@ class ScraperConfig:
     user_agent: str
     request_timeout_seconds: float
     dry_run: bool
+    # Politeness controls: enforced globally across all source adapters
+    # via scraper.politeness.Politeness.
+    inter_request_delay_seconds: float
+    max_retries: int
 
 
 def load_config() -> ScraperConfig:
@@ -36,7 +40,14 @@ def load_config() -> ScraperConfig:
         api_base_url=api_base,
         api_token=token,
         watchlist_path=watchlist_path,
-        user_agent=os.environ.get("USER_AGENT", "JobAgentScraper/0.1"),
+        # Default UA includes a contact URL per HTTP convention so any
+        # board operator who notices our traffic can find us.
+        user_agent=os.environ.get(
+            "USER_AGENT",
+            "JobAgentScraper/0.4 (+https://github.com/JustinoChan/Job-Application-Agent)",
+        ),
         request_timeout_seconds=float(os.environ.get("REQUEST_TIMEOUT_SECONDS", "20")),
         dry_run=os.environ.get("DRY_RUN", "false").lower() in {"1", "true", "yes"},
+        inter_request_delay_seconds=float(os.environ.get("INTER_REQUEST_DELAY_SECONDS", "1.0")),
+        max_retries=int(os.environ.get("MAX_RETRIES", "3")),
     )

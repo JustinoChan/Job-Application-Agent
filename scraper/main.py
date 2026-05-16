@@ -15,6 +15,7 @@ import yaml
 
 from scraper.api_client import ApiClient, DiscoveredPosting
 from scraper.config import ScraperConfig, load_config
+from scraper.politeness import Politeness
 from scraper.sources import REGISTRY, WatchlistEntry
 
 log = logging.getLogger("scraper")
@@ -67,7 +68,11 @@ def _load_watchlist(config: ScraperConfig) -> list[WatchlistEntry]:
     return entries
 
 
-def _scrape_sources(entries: list[WatchlistEntry], http: httpx.Client) -> list[DiscoveredPosting]:
+def _scrape_sources(
+    entries: list[WatchlistEntry],
+    http: httpx.Client,
+    politeness: Politeness,
+) -> list[DiscoveredPosting]:
     out: list[DiscoveredPosting] = []
     for entry in entries:
         fn = REGISTRY.get(entry.kind)
@@ -75,7 +80,7 @@ def _scrape_sources(entries: list[WatchlistEntry], http: httpx.Client) -> list[D
             log.warning("unknown source kind '%s' for %s; skipping", entry.kind, entry.display)
             continue
         try:
-            items = list(fn(entry, http))
+            items = list(fn(entry, http, politeness))
         except Exception:
             log.exception("source %s failed", entry.display)
             continue
@@ -101,11 +106,19 @@ def run(self_test: bool = False) -> int:
 
     entries = _load_watchlist(config)
     if entries:
+        politeness = Politeness(
+            inter_request_delay_seconds=config.inter_request_delay_seconds,
+            max_retries=config.max_retries,
+        )
+        log.info(
+            "politeness: %.2fs between requests, %d max retries",
+            config.inter_request_delay_seconds, config.max_retries,
+        )
         with httpx.Client(
             headers={"User-Agent": config.user_agent},
             timeout=config.request_timeout_seconds,
         ) as http:
-            postings.extend(_scrape_sources(entries, http))
+            postings.extend(_scrape_sources(entries, http, politeness))
 
     if not postings:
         log.info("no postings to send; exiting cleanly")

@@ -7,6 +7,7 @@ from typing import Callable, Iterable
 import httpx
 
 from scraper.api_client import DiscoveredPosting
+from scraper.politeness import Politeness
 
 
 @dataclass(frozen=True)
@@ -26,7 +27,9 @@ class WatchlistEntry:
         return self.kind
 
 
-SourceFn = Callable[[WatchlistEntry, httpx.Client], Iterable[DiscoveredPosting]]
+# Adapters take a httpx.Client (for connection reuse) plus a Politeness
+# instance that enforces inter-request delays and retries globally.
+SourceFn = Callable[[WatchlistEntry, httpx.Client, Politeness], Iterable[DiscoveredPosting]]
 REGISTRY: dict[str, SourceFn] = {}
 
 

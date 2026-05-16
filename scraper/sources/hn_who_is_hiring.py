@@ -14,16 +14,17 @@ from typing import Iterable
 import httpx
 
 from scraper.api_client import DiscoveredPosting
+from scraper.politeness import Politeness
 from scraper.sources import WatchlistEntry, register
 from scraper.sources._date import parse_iso_date
 from scraper.sources._html import html_to_text
 from scraper.sources._match import keyword_matches
+from scraper.sources._url import extract_first_url
 
 log = logging.getLogger(__name__)
 
 _SEARCH_BY_DATE_URL = "https://hn.algolia.com/api/v1/search_by_date"
 _ITEM_URL_TPL = "https://hn.algolia.com/api/v1/items/{id}"
-_URL_RE = re.compile(r"https?://[^\s<>'\"]+")
 _MONTHLY_TITLE_RE = re.compile(
     r"who\s+is\s+hiring\?\s*\(\s*"
     r"(?:january|february|march|april|may|june|july|august|september|october|november|december)"
@@ -66,9 +67,9 @@ _ROLE_KEYWORD_RE = re.compile(
 
 
 @register("hn_who_is_hiring")
-def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[DiscoveredPosting]:
+def iter_postings(entry: WatchlistEntry, http: httpx.Client, politeness: Politeness) -> Iterable[DiscoveredPosting]:
     try:
-        story = _find_latest_thread(http)
+        story = _find_latest_thread(http, politeness)
     except httpx.HTTPError as exc:
         log.warning("hn search failed: %s", exc)
         return
@@ -80,7 +81,7 @@ def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[Discove
     log.info("hn: using story %s ('%s')", story_id, story_title)
 
     try:
-        resp = http.get(_ITEM_URL_TPL.format(id=story_id))
+        resp = politeness.get(http, _ITEM_URL_TPL.format(id=story_id))
         resp.raise_for_status()
         item = resp.json()
     except httpx.HTTPError as exc:
@@ -98,7 +99,7 @@ def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[Discove
         company, title, location = _parse_header(text)
         if not company:
             continue
-        url = _extract_first_url(text) or f"https://news.ycombinator.com/item?id={kid.get('id')}"
+        url = extract_first_url(text) or f"https://news.ycombinator.com/item?id={kid.get('id')}"
         posted_at = parse_iso_date(kid.get("created_at"))
         # If the header carried a location (HN convention) but the body has
         # no "Location:" line, prepend one so the backend's parser captures
@@ -115,7 +116,7 @@ def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[Discove
         )
 
 
-def _find_latest_thread(http: httpx.Client) -> dict | None:
+def _find_latest_thread(http: httpx.Client, politeness: Politeness) -> dict | None:
     """Find the most recent 'Ask HN: Who is hiring? (Month YYYY)' thread.
 
     Algolia's `/search` is relevance-ranked, which surfaces the
@@ -123,7 +124,8 @@ def _find_latest_thread(http: httpx.Client) -> dict | None:
     current monthly one. `/search_by_date` is sorted by `created_at`
     desc, so the latest monthly thread is first.
     """
-    resp = http.get(
+    resp = politeness.get(
+        http,
         _SEARCH_BY_DATE_URL,
         params={
             "tags": "story,author_whoishiring",
@@ -181,6 +183,3 @@ def _parse_header(comment_text: str) -> tuple[str, str, str]:
     return company, title or fallback_title or "(see post)", location
 
 
-def _extract_first_url(text: str) -> str:
-    m = _URL_RE.search(text)
-    return m.group(0).rstrip(".,;:)") if m else ""

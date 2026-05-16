@@ -62,6 +62,33 @@ _COLUMN_DEFAULTS: dict[str, str] = {
 # notes values that should migrate over.
 _LEGACY_SOURCE_NOTES_RE = re.compile(r"^(hn|greenhouse|lever|ashby):", re.IGNORECASE)
 
+# Legacy URL pollution: the HN scraper's regex used to capture footnote
+# markers like `[2]` and trailing punctuation. Detect and clean.
+_URL_TRAILING_PUNCT = ".,;:!?"
+
+
+def _clean_url(url: str) -> str:
+    """Strip footnote markers, trailing punctuation, and unbalanced parens.
+
+    Matches the cleaning behavior of scraper.sources._url.clean_url so
+    new scrapes and the migration produce the same shape.
+    """
+    if not url:
+        return ""
+    url = url.strip()
+    # HN footnote markers: `https://...[2]` — strip the trailing bracket pair.
+    url = re.sub(r"\[\d+\]$", "", url)
+    # Also strip stray trailing brackets entirely.
+    while url and url[-1] in "[]":
+        url = url[:-1]
+    while url and url[-1] in _URL_TRAILING_PUNCT:
+        url = url[:-1]
+    while url.endswith(")") and url.count(")") > url.count("("):
+        url = url[:-1]
+    while url and url[-1] in _URL_TRAILING_PUNCT:
+        url = url[:-1]
+    return url
+
 
 def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
     """Bring tracker.csv up to the current TRACKER_COLUMNS layout in one pass.
@@ -110,6 +137,13 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
         if not result.get("source") and _LEGACY_SOURCE_NOTES_RE.match(result.get("notes", "")):
             result["source"] = result["notes"]
             result["notes"] = ""
+        # Clean URLs polluted by the old extractor (HN `[N]` footnote
+        # markers, trailing punctuation, unbalanced parens).
+        url_raw = result.get("url", "")
+        if url_raw:
+            cleaned = _clean_url(url_raw)
+            if cleaned != url_raw:
+                result["url"] = cleaned
         normalized.append(result)
 
     with open(tracker_path, "w", newline="", encoding="utf-8") as f:
@@ -120,22 +154,32 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
 
 
 def _body_needs_cleanup(header: list[str], body: list[list[str]]) -> bool:
-    """Detect rows that still have legacy scraper source in `notes`."""
-    if "notes" not in header:
-        return False
-    notes_idx = header.index("notes")
+    """Detect rows needing data cleanup independent of header changes.
+
+    Two cases:
+    - legacy scraper source stuck in `notes` without a matching `source`
+    - URL values still polluted by the old extractor (HN footnote markers,
+      trailing punctuation, unbalanced closing parens)
+    """
+    notes_idx = header.index("notes") if "notes" in header else None
     source_idx = header.index("source") if "source" in header else None
+    url_idx = header.index("url") if "url" in header else None
+
     for raw_row in body:
-        if not raw_row or len(raw_row) <= notes_idx:
+        if not raw_row:
             continue
-        notes = (raw_row[notes_idx] or "").strip()
-        if not notes or not _LEGACY_SOURCE_NOTES_RE.match(notes):
-            continue
-        existing_source = ""
-        if source_idx is not None and len(raw_row) > source_idx:
-            existing_source = (raw_row[source_idx] or "").strip()
-        if not existing_source:
-            return True
+        if notes_idx is not None and len(raw_row) > notes_idx:
+            notes = (raw_row[notes_idx] or "").strip()
+            if notes and _LEGACY_SOURCE_NOTES_RE.match(notes):
+                existing_source = ""
+                if source_idx is not None and len(raw_row) > source_idx:
+                    existing_source = (raw_row[source_idx] or "").strip()
+                if not existing_source:
+                    return True
+        if url_idx is not None and len(raw_row) > url_idx:
+            url = (raw_row[url_idx] or "").strip()
+            if url and _clean_url(url) != url:
+                return True
     return False
 
 

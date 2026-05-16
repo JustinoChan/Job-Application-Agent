@@ -40,7 +40,22 @@ from src.models import AuditVerdict, TrackerEntry, TrackerStatus
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
-_URL_RE = re.compile(r"https?://[^\s<>'\"\)\]]+")
+# Exclude brackets so HN footnote markers (`[2]`) don't merge into the URL.
+# Closing parens are left in the character class but stripped afterward
+# in a balance-aware way (see _clean_url).
+_URL_RE = re.compile(r"https?://[^\s<>'\"\[\]]+")
+_URL_TRAILING_PUNCT = ".,;:!?"
+
+
+def _clean_url(url: str) -> str:
+    url = url.strip()
+    while url and url[-1] in _URL_TRAILING_PUNCT:
+        url = url[:-1]
+    while url.endswith(")") and url.count(")") > url.count("("):
+        url = url[:-1]
+    while url and url[-1] in _URL_TRAILING_PUNCT:
+        url = url[:-1]
+    return url
 # Salary mentions: explicit ranges with $/€/£, k-suffixed numbers, or
 # /yr|/year tokens. Conservative — false positives degrade the UI less
 # than missing real salary info.
@@ -69,12 +84,10 @@ def _extract_emails(text: str) -> list[str]:
 def _extract_apply_urls(text: str, exclude: str | None) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
-    excl = (exclude or "").rstrip("/")
+    excl = _clean_url(exclude or "").rstrip("/")
     for m in _URL_RE.findall(text):
-        clean = m.rstrip(".,;:)")
-        if clean.rstrip("/") == excl:
-            continue
-        if clean in seen:
+        clean = _clean_url(m)
+        if not clean or clean.rstrip("/") == excl or clean in seen:
             continue
         seen.add(clean)
         out.append(clean)
