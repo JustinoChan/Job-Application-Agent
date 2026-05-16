@@ -232,6 +232,7 @@ class TrackerEntry(BaseModel):
     posted_at: Optional[date] = None
     company: str
     role: str
+    location: Optional[str] = None
     url: Optional[str] = None
     status: TrackerStatus
     fit_score: Optional[float] = None
@@ -242,4 +243,5 @@ class TrackerEntry(BaseModel):
     notes: Optional[str] = None
     next_action: Optional[str] = None
     starred: bool = False
+    source: Optional[str] = None
     date_updated: date = Field(default_factory=date.today)

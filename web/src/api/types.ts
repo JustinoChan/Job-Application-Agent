@@ -16,6 +16,7 @@ export interface TrackerEntry {
   posted_at?: string | null;
   company: string;
   role: string;
+  location?: string | null;
   url?: string | null;
   status: TrackerStatus;
   fit_score?: number | null;
@@ -26,7 +27,29 @@ export interface TrackerEntry {
   notes?: string | null;
   next_action?: string | null;
   starred?: boolean;
+  source?: string | null;
   date_updated: string;
+}
+
+export interface JobAnalysis {
+  job_id: string;
+  company: string;
+  title: string;
+  location?: string | null;
+  url?: string | null;
+  source?: string | null;
+  requirements: string[];
+  nice_to_haves: string[];
+  responsibilities: string[];
+  extracted_keywords: string[];
+  fit_score: FitScore;
+}
+
+export interface TailorResult {
+  job_id: string;
+  version: number;
+  audit_verdict: string;
+  message: string;
 }
 
 export interface SearchResult {

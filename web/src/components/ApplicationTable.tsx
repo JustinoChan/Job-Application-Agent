@@ -91,6 +91,7 @@ export default function ApplicationTable({ applications, selectedIds, onSelectio
           ))}
           <th>Audit</th>
           <th>Ver</th>
+          <th>Link</th>
         </tr>
       </thead>
       <tbody>
@@ -121,6 +122,11 @@ export default function ApplicationTable({ applications, selectedIds, onSelectio
             <td>{app.date_updated}</td>
             <td>{app.audit_verdict || "-"}</td>
             <td>{app.latest_resume_version ? `v${String(app.latest_resume_version).padStart(3, "0")}` : "-"}</td>
+            <td>
+              {app.url ? (
+                <a href={app.url} target="_blank" rel="noreferrer" title={app.url} onClick={(e) => e.stopPropagation()}>↗</a>
+              ) : "-"}
+            </td>
           </tr>
         ))}
       </tbody>

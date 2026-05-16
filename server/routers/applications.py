@@ -18,6 +18,7 @@ from server.schemas import (
     CoverLetterResponse,
     DiscoverRequest,
     DiscoverResponse,
+    JobAnalysisResponse,
     OpenClawStatusResponse,
     PreviewRequest,
     PreviewResponse,
@@ -27,10 +28,12 @@ from server.schemas import (
     SearchResult,
     StarRequest,
     StatusUpdateRequest,
+    TailorResponse,
     TrackerEntryResponse,
 )
-from src import config, fit_scorer, job_parser, job_scraper, pipeline, tracker
-from src.models import TrackerEntry, TrackerStatus
+from src import claim_auditor, config, fit_scorer, job_parser, job_scraper, pdf_renderer, pipeline, resume_tailor, tracker
+from src.filelock import version_lock
+from src.models import AuditVerdict, TrackerEntry, TrackerStatus
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -131,10 +134,11 @@ def discover_application(request: DiscoverRequest) -> DiscoverResponse:
         posted_at=request.posted_at,
         company=request.company,
         role=request.title,
+        location=job.location,
         url=request.url,
         status=TrackerStatus.FOUND,
         fit_score=fit.overall_score,
-        notes=request.source,
+        source=request.source,
         next_action="review",
     )
     tracker.add_entry(config.TRACKER_PATH, entry)
@@ -257,6 +261,114 @@ def get_raw_job(job_id: str) -> str:
     if not raw_path.exists():
         raise HTTPException(status_code=404, detail="Raw job text not found.")
     return raw_path.read_text(encoding="utf-8")
+
+
+@router.get("/{job_id}/analysis", response_model=JobAnalysisResponse)
+def get_job_analysis(job_id: str) -> JobAnalysisResponse:
+    """Re-parse the saved raw posting and return the fit breakdown.
+
+    The discover pipeline persists only the overall fit score; the full
+    breakdown (skill matches, missing skills, recommendation, requirements,
+    extracted keywords) is regenerated here on demand so the dashboard can
+    show *why* a posting fits.
+    """
+    entry = tracker.get_entry(config.TRACKER_PATH, job_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    raw_path = config.JOBS_RAW_DIR / f"{job_id}.txt"
+    if not raw_path.exists():
+        raise HTTPException(status_code=404, detail="Raw job text not found.")
+
+    profile = dependencies.get_profile()
+    projects = list(dependencies.get_projects())
+    rules = dependencies.get_rules()
+    raw_text = raw_path.read_text(encoding="utf-8")
+    job = job_parser.parse_job_description(
+        raw_text, profile, projects, rules,
+        company_override=entry.company, title_override=entry.role,
+    )
+    fit = fit_scorer.score_fit(job, profile, projects, rules)
+
+    return JobAnalysisResponse(
+        job_id=job_id,
+        company=entry.company,
+        title=entry.role,
+        location=entry.location or job.location,
+        url=entry.url,
+        source=entry.source,
+        requirements=[req.text for req in job.requirements],
+        nice_to_haves=[req.text for req in job.nice_to_haves],
+        responsibilities=job.responsibilities,
+        extracted_keywords=job.extracted_keywords,
+        fit_score=fit,
+    )
+
+
+@router.post("/{job_id}/tailor", response_model=TailorResponse)
+def tailor_from_tracker(job_id: str) -> TailorResponse:
+    """Generate a versioned resume for an existing tracker entry.
+
+    Reads the saved raw posting, runs the full tailor + audit pipeline,
+    persists a new resume version, and advances the tracker row to
+    `prepared`. Used by the dashboard's Generate Resume button on
+    found-status rows.
+    """
+    entry = tracker.get_entry(config.TRACKER_PATH, job_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    raw_path = config.JOBS_RAW_DIR / f"{job_id}.txt"
+    if not raw_path.exists():
+        raise HTTPException(status_code=404, detail="Raw job text not found.")
+
+    profile = dependencies.get_profile()
+    projects = list(dependencies.get_projects())
+    rules = dependencies.get_rules()
+    resume_config = dependencies.get_resume_config()
+    raw_text = raw_path.read_text(encoding="utf-8")
+
+    job = job_parser.parse_job_description(
+        raw_text, profile, projects, rules,
+        company_override=entry.company, title_override=entry.role,
+    )
+    fit = fit_scorer.score_fit(job, profile, projects, rules)
+    tailored = resume_tailor.tailor_resume(job, fit, profile, projects, resume_config, rules)
+    report = claim_auditor.audit_resume(tailored, projects, profile, rules)
+
+    if report.overall_verdict == AuditVerdict.FAIL:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Claim audit failed; resume was not saved.",
+                "audit_report": report.model_dump(mode="json"),
+            },
+        )
+
+    md = resume_tailor.render_resume_markdown(tailored, profile)
+    with version_lock(job_id):
+        version = config.next_resume_version(job_id)
+        resume_path = resume_tailor.save_resume(md, job_id, version)
+        resume_tailor.save_resume_metadata(tailored, job_id, version)
+        claim_auditor.save_audit_report(report, job_id, version)
+
+        next_status = entry.status
+        if next_status == TrackerStatus.FOUND:
+            next_status = TrackerStatus.PREPARED
+        tracker.update_status(
+            config.TRACKER_PATH,
+            job_id,
+            next_status,
+            resume_path=str(resume_path),
+            audit_verdict=report.overall_verdict.value,
+            latest_resume_version=version,
+            fit_score=fit.overall_score,
+        )
+
+    return TailorResponse(
+        job_id=job_id,
+        version=version,
+        audit_verdict=report.overall_verdict.value,
+        message=f"Saved resume v{version:03d} for {entry.company} / {entry.role}.",
+    )
 
 
 @router.get("/{job_id}/resume/{version}", response_class=PlainTextResponse)

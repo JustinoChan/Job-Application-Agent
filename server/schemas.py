@@ -14,6 +14,7 @@ class TrackerEntryResponse(BaseModel):
     posted_at: date | None = None
     company: str
     role: str
+    location: str | None = None
     url: str | None = None
     status: TrackerStatus
     fit_score: float | None = None
@@ -24,6 +25,7 @@ class TrackerEntryResponse(BaseModel):
     notes: str | None = None
     next_action: str | None = None
     starred: bool = False
+    source: str | None = None
     date_updated: date
 
 
@@ -134,6 +136,33 @@ class DiscoverResponse(BaseModel):
 
 class StarRequest(BaseModel):
     starred: bool
+
+
+class JobAnalysisResponse(BaseModel):
+    """Re-parsed view of a stored posting for display on JobDetail.
+
+    The discover pipeline only persists `fit_score` (overall) to the tracker,
+    not the breakdown. This recomputes from the saved raw text so the
+    dashboard can show requirements, missing skills, recommendation, etc.
+    """
+    job_id: str
+    company: str
+    title: str
+    location: str | None = None
+    url: str | None = None
+    source: str | None = None
+    requirements: list[str]
+    nice_to_haves: list[str]
+    responsibilities: list[str]
+    extracted_keywords: list[str]
+    fit_score: FitScore
+
+
+class TailorResponse(BaseModel):
+    job_id: str
+    version: int
+    audit_verdict: str
+    message: str
 
 
 class BulkArchiveRequest(BaseModel):

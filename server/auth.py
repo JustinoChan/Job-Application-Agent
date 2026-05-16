@@ -30,6 +30,18 @@ def _check_cloudflare_access(email: str | None) -> bool:
     return not allowed or email.lower() in allowed
 
 
+def _check_query_token(query_token: str | None) -> bool:
+    """Allow `?token=...` as a Bearer-equivalent for GETs the browser issues
+    directly (iframe src, anchor href). These cases cannot attach an
+    Authorization header. The token value is identical to API_TOKEN."""
+    if not query_token:
+        return False
+    token = os.getenv("API_TOKEN")
+    if not token:
+        return False
+    return secrets.compare_digest(query_token, token)
+
+
 async def verify_request(
     request: Request,
     authorization: str = Header(default=""),
@@ -42,7 +54,10 @@ async def verify_request(
     if mode == "none":
         return
 
-    token_ok = mode in {"token", "token_or_access"} and _check_bearer(authorization)
+    query_token = request.query_params.get("token")
+    token_ok = mode in {"token", "token_or_access"} and (
+        _check_bearer(authorization) or _check_query_token(query_token)
+    )
     access_ok = mode in {"cloudflare_access", "token_or_access"} and _check_cloudflare_access(
         cf_access_authenticated_user_email
     )

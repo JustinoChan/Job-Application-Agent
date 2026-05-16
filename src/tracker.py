@@ -19,6 +19,7 @@ TRACKER_COLUMNS = [
     "posted_at",
     "company",
     "role",
+    "location",
     "url",
     "status",
     "fit_score",
@@ -29,6 +30,7 @@ TRACKER_COLUMNS = [
     "notes",
     "next_action",
     "starred",
+    "source",
     "date_updated",
 ]
 
@@ -50,6 +52,8 @@ def _ensure_tracker_exists_unlocked(tracker_path: Path) -> None:
 _COLUMN_DEFAULTS: dict[str, str] = {
     "starred": "0",
     "posted_at": "",
+    "location": "",
+    "source": "",
 }
 
 
@@ -127,6 +131,8 @@ def update_status(
     fit_score: float | None = None,
     cover_letter_path: str | None = None,
     starred: bool | None = None,
+    location: str | None = None,
+    source: str | None = None,
 ) -> bool:
     with tracker_lock():
         if not tracker_path.exists():
@@ -155,6 +161,10 @@ def update_status(
                         row["cover_letter_path"] = cover_letter_path
                     if starred is not None:
                         row["starred"] = "1" if starred else "0"
+                    if location is not None:
+                        row["location"] = location
+                    if source is not None:
+                        row["source"] = source
                     found = True
                 rows.append(row)
 
@@ -312,6 +322,7 @@ def _entry_to_row(entry: TrackerEntry) -> dict:
         "posted_at": entry.posted_at.isoformat() if entry.posted_at else "",
         "company": entry.company,
         "role": entry.role,
+        "location": entry.location or "",
         "url": entry.url or "",
         "status": entry.status.value,
         "fit_score": str(entry.fit_score) if entry.fit_score is not None else "",
@@ -322,6 +333,7 @@ def _entry_to_row(entry: TrackerEntry) -> dict:
         "notes": entry.notes or "",
         "next_action": entry.next_action or "",
         "starred": "1" if entry.starred else "0",
+        "source": entry.source or "",
         "date_updated": entry.date_updated.isoformat(),
     }
 
@@ -337,6 +349,7 @@ def _row_to_entry(row: dict) -> TrackerEntry:
         posted_at=date.fromisoformat(posted_raw) if posted_raw else None,
         company=row["company"],
         role=row["role"],
+        location=row.get("location") or None,
         url=row.get("url") or None,
         status=TrackerStatus(row["status"]),
         fit_score=float(fit) if fit else None,
@@ -347,5 +360,6 @@ def _row_to_entry(row: dict) -> TrackerEntry:
         notes=row.get("notes") or None,
         next_action=row.get("next_action") or None,
         starred=starred_raw in {"1", "true", "yes"},
+        source=row.get("source") or None,
         date_updated=date.fromisoformat(row.get("date_updated", date.today().isoformat())),
     )

@@ -4,15 +4,28 @@ import type {
   CoverLetterList,
   CoverLetterResponse,
   DashboardStats,
+  JobAnalysis,
   OpenClawStatus,
   PreviewResponse,
   ScrapeResponse,
   SearchResponse,
+  TailorResult,
   TrackerEntry,
   TrackerStatus
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
+
+function getStoredToken(): string {
+  return localStorage.getItem("JOB_AGENT_API_TOKEN") || import.meta.env.VITE_API_TOKEN || "";
+}
+
+function withToken(url: string): string {
+  const token = getStoredToken();
+  if (!token) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+}
 
 export const api = axios.create({
   baseURL: `${API_BASE}/api`,
@@ -20,7 +33,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("JOB_AGENT_API_TOKEN") || import.meta.env.VITE_API_TOKEN || "";
+  const token = getStoredToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -106,11 +119,21 @@ export async function getRawJob(jobId: string): Promise<string> {
 }
 
 export function resumeHtmlUrl(jobId: string, version: number): string {
-  return `${API_BASE}/api/applications/${jobId}/resume/${version}/html`;
+  return withToken(`${API_BASE}/api/applications/${jobId}/resume/${version}/html`);
 }
 
 export function resumePdfUrl(jobId: string, version: number): string {
-  return `${API_BASE}/api/applications/${jobId}/resume/${version}/pdf`;
+  return withToken(`${API_BASE}/api/applications/${jobId}/resume/${version}/pdf`);
+}
+
+export async function getJobAnalysis(jobId: string): Promise<JobAnalysis> {
+  const response = await api.get<JobAnalysis>(`/applications/${jobId}/analysis`);
+  return response.data;
+}
+
+export async function tailorFromTracker(jobId: string): Promise<TailorResult> {
+  const response = await api.post<TailorResult>(`/applications/${jobId}/tailor`);
+  return response.data;
 }
 
 export async function getAudit(jobId: string, version: number) {
@@ -140,9 +163,9 @@ export async function getCoverLetterAudit(jobId: string, version: number) {
 }
 
 export function coverLetterHtmlUrl(jobId: string, version: number): string {
-  return `${API_BASE}/api/applications/${jobId}/cover-letter/${version}/html`;
+  return withToken(`${API_BASE}/api/applications/${jobId}/cover-letter/${version}/html`);
 }
 
 export function coverLetterPdfUrl(jobId: string, version: number): string {
-  return `${API_BASE}/api/applications/${jobId}/cover-letter/${version}/pdf`;
+  return withToken(`${API_BASE}/api/applications/${jobId}/cover-letter/${version}/pdf`);
 }

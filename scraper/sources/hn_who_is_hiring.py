@@ -25,6 +25,23 @@ _SEARCH_URL = "https://hn.algolia.com/api/v1/search"
 _ITEM_URL_TPL = "https://hn.algolia.com/api/v1/items/{id}"
 _URL_RE = re.compile(r"https?://[^\s<>'\"]+")
 
+# HN "Who is hiring" headers follow a `Company | ... | ...` convention but
+# the order beyond slot 0 is not standardized. We detect which slot is the
+# title by ruling out the things a title is NOT: location, employment type,
+# compensation, sponsorship policy.
+_LOCATION_RE = re.compile(
+    r"(?ix)"
+    r"\b(?:remote|hybrid|on[\s\-]?site|wfh|in[\s\-]?office)\b"
+    r"|\b(?:USA|UK|EU|EMEA|APAC|US|UK|EU only|world[\s\-]?wide|anywhere)\b"
+    r"|\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+(?:[A-Z]{2}|[A-Z][a-z]+)\b"  # City, ST or City, Country
+)
+_EMPLOYMENT_RE = re.compile(
+    r"(?i)\b(?:full[\s\-]?time|part[\s\-]?time|contract|contractor|freelance|"
+    r"intern(?:ship)?|temp|temporary|permanent|fte|c2c|w2)\b"
+)
+_COMP_RE = re.compile(r"(?i)\$|salary|comp(?:ensation)?|equity|\bk\b|/yr|/year")
+_SPONSOR_RE = re.compile(r"(?i)visa|h[\s\-]?1b|sponsor|no\s+sponsor")
+
 
 @register("hn_who_is_hiring")
 def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[DiscoveredPosting]:
@@ -56,11 +73,16 @@ def iter_postings(entry: WatchlistEntry, http: httpx.Client) -> Iterable[Discove
             continue
         if not keyword_matches(text, entry.match_keywords):
             continue
-        company, title = _parse_header(text)
+        company, title, location = _parse_header(text)
         if not company:
             continue
         url = _extract_first_url(text) or f"https://news.ycombinator.com/item?id={kid.get('id')}"
         posted_at = parse_iso_date(kid.get("created_at"))
+        # If the header carried a location (HN convention) but the body has
+        # no "Location:" line, prepend one so the backend's parser captures
+        # it. JobPosting.location is what the dashboard surfaces.
+        if location and not re.search(r"(?im)^\s*location\s*:", text):
+            text = f"Location: {location}\n\n{text}"
         yield DiscoveredPosting(
             company=company,
             title=title or "(see post)",
@@ -89,16 +111,36 @@ def _find_latest_thread(http: httpx.Client) -> dict | None:
     return None
 
 
-def _parse_header(comment_text: str) -> tuple[str, str]:
+def _parse_header(comment_text: str) -> tuple[str, str, str]:
+    """Return (company, title, location) from an HN hiring comment header.
+
+    The first pipe slot is taken as the company. Remaining slots are
+    classified: the first one matching a location pattern becomes the
+    location, and the first slot that doesn't match location / employment
+    type / compensation / sponsorship patterns becomes the title.
+    """
     first_line = next((line.strip() for line in comment_text.splitlines() if line.strip()), "")
     if not first_line:
-        return "", ""
+        return "", "", ""
     parts = [p.strip() for p in first_line.split("|") if p.strip()]
-    if len(parts) >= 2:
-        return parts[0], parts[1]
-    if len(parts) == 1:
-        return parts[0], ""
-    return "", ""
+    if not parts:
+        return "", "", ""
+    company = parts[0]
+
+    location = ""
+    title = ""
+    for slot in parts[1:]:
+        is_location = bool(_LOCATION_RE.search(slot))
+        is_employment = bool(_EMPLOYMENT_RE.search(slot))
+        is_comp = bool(_COMP_RE.search(slot))
+        is_sponsor = bool(_SPONSOR_RE.search(slot))
+        if not location and is_location:
+            location = slot
+            continue
+        if not title and not (is_location or is_employment or is_comp or is_sponsor):
+            title = slot
+
+    return company, title or "(see post)", location
 
 
 def _extract_first_url(text: str) -> str:
