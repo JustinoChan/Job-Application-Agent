@@ -1,5 +1,6 @@
 import axios from "axios";
 import type {
+  BrowserApplyResult,
   ConfirmResponse,
   CoverLetterList,
   CoverLetterResponse,
@@ -168,4 +169,12 @@ export function coverLetterHtmlUrl(jobId: string, version: number): string {
 
 export function coverLetterPdfUrl(jobId: string, version: number): string {
   return withToken(`${API_BASE}/api/applications/${jobId}/cover-letter/${version}/pdf`);
+}
+
+export async function browserApply(jobId: string, urlOverride?: string): Promise<BrowserApplyResult> {
+  const response = await api.post<BrowserApplyResult>(
+    `/applications/${jobId}/browser-apply`,
+    { url_override: urlOverride ?? null, headless: false }
+  );
+  return response.data;
 }

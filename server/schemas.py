@@ -132,6 +132,7 @@ class DiscoverResponse(BaseModel):
     fit_score: float | None = None
     recommendation: str | None = None
     reason: str | None = None
+    auto_tailored: bool = False
 
 
 class StarRequest(BaseModel):
@@ -177,6 +178,20 @@ class BulkArchiveRequest(BaseModel):
 
 class BulkArchiveResponse(BaseModel):
     updated: int
+
+
+class BrowserApplyRequest(BaseModel):
+    url_override: str | None = None
+    headless: bool = False
+
+
+class BrowserApplyResponse(BaseModel):
+    job_id: str
+    url: str
+    fields_filled: list[str] = []
+    resume_attached: bool = False
+    paused: bool = False
+    error: str | None = None
 
 
 class SearchResult(BaseModel):

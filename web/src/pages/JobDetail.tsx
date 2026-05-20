@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  browserApply,
   coverLetterHtmlUrl,
   coverLetterPdfUrl,
   generateCoverLetter,
@@ -60,6 +61,8 @@ export default function JobDetail() {
   const [coverError, setCoverError] = useState("");
   const [tailoring, setTailoring] = useState(false);
   const [tailorError, setTailorError] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState("");
 
   useEffect(() => {
     loadEntry();
@@ -139,6 +142,23 @@ export default function JobDetail() {
       setTailorError(msg);
     } finally {
       setTailoring(false);
+    }
+  }
+
+  async function handleBrowserApply() {
+    setApplying(true);
+    setApplyError("");
+    try {
+      const result = await browserApply(jobId);
+      if (result.error) {
+        setApplyError(result.error);
+      }
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : detail?.message || err.message;
+      setApplyError(msg);
+    } finally {
+      setApplying(false);
     }
   }
 
@@ -325,8 +345,14 @@ export default function JobDetail() {
                 <button onClick={handleTailor} disabled={tailoring}>
                   {tailoring ? "Regenerating..." : "Regenerate Resume"}
                 </button>
+                {entry.url && (
+                  <button onClick={handleBrowserApply} disabled={applying} title="Open apply page in browser with fields pre-filled">
+                    {applying ? "Opening..." : "Apply in Browser"}
+                  </button>
+                )}
               </div>
               {tailorError && <div className="error-banner">{tailorError}</div>}
+              {applyError && <div className="error-banner">{applyError}</div>}
               <ResumePreview src={resumeHtmlUrl(entry.job_id, version)} />
             </>
           )}

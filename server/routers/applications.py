@@ -11,6 +11,8 @@ import re
 
 from server import dependencies
 from server.schemas import (
+    BrowserApplyRequest,
+    BrowserApplyResponse,
     BulkArchiveRequest,
     BulkArchiveResponse,
     ConfirmRequest,
@@ -33,9 +35,13 @@ from server.schemas import (
     TailorResponse,
     TrackerEntryResponse,
 )
-from src import claim_auditor, config, fit_scorer, job_parser, job_scraper, pdf_renderer, pipeline, resume_tailor, tracker
+from src import claim_auditor, config, fit_scorer, job_parser, job_scraper, notifications, pdf_renderer, pipeline, resume_tailor, tracker
 from src.filelock import version_lock
 from src.models import AuditVerdict, TrackerEntry, TrackerStatus
+
+import logging as _logging
+
+_log = _logging.getLogger(__name__)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -215,11 +221,51 @@ def discover_application(request: DiscoverRequest) -> DiscoverResponse:
     )
     tracker.add_entry(config.TRACKER_PATH, entry)
 
+    auto_tailored = False
+    if notifications.should_notify(fit.overall_score):
+        try:
+            resume_cfg = dependencies.get_resume_config()
+            tailored = resume_tailor.tailor_resume(job, fit, profile, projects, resume_cfg, rules)
+            report = claim_auditor.audit_resume(tailored, projects, profile, rules)
+            if report.overall_verdict != AuditVerdict.FAIL:
+                md = resume_tailor.render_resume_markdown(tailored, profile)
+                with version_lock(job_id):
+                    version = config.next_resume_version(job_id)
+                    resume_path = resume_tailor.save_resume(md, job_id, version)
+                    resume_tailor.save_resume_metadata(tailored, job_id, version)
+                    claim_auditor.save_audit_report(report, job_id, version)
+                    tracker.update_status(
+                        config.TRACKER_PATH, job_id, TrackerStatus.PREPARED,
+                        resume_path=str(resume_path),
+                        audit_verdict=report.overall_verdict.value,
+                        latest_resume_version=version,
+                        fit_score=fit.overall_score,
+                    )
+                auto_tailored = True
+                _log.info("auto-tailored resume v%03d for %s", version, job_id)
+        except Exception:
+            _log.exception("auto-tailor failed for %s (non-blocking)", job_id)
+
+        notifications.send_new_job_notification(
+            job_id=job_id,
+            company=request.company,
+            title=request.title,
+            fit_score=fit.overall_score,
+            recommendation=fit.recommendation,
+            url=request.url,
+            location=job.location,
+            experience_level=job.experience_level,
+            source=request.source,
+            auto_tailored=auto_tailored,
+            dashboard_base_url=os.getenv("DASHBOARD_BASE_URL"),
+        )
+
     return DiscoverResponse(
         job_id=job_id,
         status="saved",
         fit_score=fit.overall_score,
         recommendation=fit.recommendation,
+        auto_tailored=auto_tailored,
     )
 
 
@@ -449,6 +495,31 @@ def tailor_from_tracker(job_id: str) -> TailorResponse:
         version=version,
         audit_verdict=report.overall_verdict.value,
         message=f"Saved resume v{version:03d} for {entry.company} / {entry.role}.",
+    )
+
+
+@router.post("/{job_id}/browser-apply", response_model=BrowserApplyResponse)
+async def browser_apply(job_id: str, request: BrowserApplyRequest) -> BrowserApplyResponse:
+    """Open the job's apply page in a browser, pre-fill fields, and pause for user review."""
+    from src import browser_apply as ba
+
+    entry = tracker.get_entry(config.TRACKER_PATH, job_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+
+    profile = dependencies.get_profile()
+    result = await ba.prefill_application(
+        job_id, profile,
+        url_override=request.url_override,
+        headless=request.headless,
+    )
+    return BrowserApplyResponse(
+        job_id=result.job_id,
+        url=result.url,
+        fields_filled=result.fields_filled,
+        resume_attached=result.resume_attached,
+        paused=result.paused,
+        error=result.error,
     )
 
 

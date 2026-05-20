@@ -50,8 +50,9 @@ defaults:
     - entry-level
 
 sources:
-  # ────────── AI labs / ML companies ──────────
-  # Anthropic uses Greenhouse, not Ashby (their public Ashby slug 404s).
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  AI LABS / ML COMPANIES
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   - kind: greenhouse
     company_slug: anthropic
     label: Anthropic
@@ -65,30 +66,59 @@ sources:
     company_slug: replit
     label: Replit
   - kind: ashby
-    company_slug: modal           # was modal-labs (404); modal works
+    company_slug: modal
     label: Modal
   - kind: ashby
     company_slug: character
     label: Character.AI
   - kind: ashby
-    company_slug: runway          # was runwayml (404); runway works
+    company_slug: runway
     label: Runway
   - kind: ashby
-    company_slug: mistral         # was lever:mistralai; ashby:mistral works
+    company_slug: mistral
     label: Mistral AI
   - kind: ashby
-    company_slug: cohere          # was greenhouse:cohere (404); ashby:cohere works
+    company_slug: cohere
     label: Cohere
   - kind: greenhouse
     company_slug: scaleai
     label: Scale AI
+  - kind: greenhouse
+    company_slug: deepmind
+    label: DeepMind
+  - kind: lever
+    company_slug: adept
+    label: Adept AI
+  - kind: ashby
+    company_slug: together-ai
+    label: Together AI
+  - kind: lever
+    company_slug: midjourney
+    label: Midjourney
+  - kind: greenhouse
+    company_slug: stability
+    label: Stability AI
+  - kind: ashby
+    company_slug: anduril
+    label: Anduril Industries
+  - kind: greenhouse
+    company_slug: shield-ai
+    label: Shield AI
+  - kind: lever
+    company_slug: imbue
+    label: Imbue
+  - kind: greenhouse
+    company_slug: labelbox
+    label: Labelbox
 
-  # ────────── Dev tools / Infra ──────────
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  DEV TOOLS / INFRA / CLOUD
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   - kind: greenhouse
     company_slug: vercel
     label: Vercel
   - kind: ashby
-    company_slug: notion          # was greenhouse:notion (404); ashby:notion works
+    company_slug: notion
     label: Notion
   - kind: greenhouse
     company_slug: gitlab
@@ -109,13 +139,13 @@ sources:
     company_slug: elastic
     label: Elastic
   - kind: ashby
-    company_slug: confluent       # was greenhouse:confluent (404); ashby:confluent works
+    company_slug: confluent
     label: Confluent
   - kind: ashby
-    company_slug: cursor          # was lever:anysphere (404); ashby:cursor works
+    company_slug: cursor
     label: Cursor (Anysphere)
   - kind: greenhouse
-    company_slug: figma           # was lever:figma (404); greenhouse:figma works
+    company_slug: figma
     label: Figma
   - kind: ashby
     company_slug: linear
@@ -126,19 +156,78 @@ sources:
   - kind: ashby
     company_slug: posthog
     label: PostHog
+  - kind: greenhouse
+    company_slug: hashicorp
+    label: HashiCorp
+  - kind: greenhouse
+    company_slug: netlify
+    label: Netlify
+  - kind: greenhouse
+    company_slug: cockroachlabs
+    label: Cockroach Labs
+  - kind: lever
+    company_slug: neon
+    label: Neon (Serverless Postgres)
+  - kind: greenhouse
+    company_slug: planetscale
+    label: PlanetScale
+  - kind: greenhouse
+    company_slug: grafana-labs
+    label: Grafana Labs
+  - kind: greenhouse
+    company_slug: sentry
+    label: Sentry
+  - kind: greenhouse
+    company_slug: launchdarkly
+    label: LaunchDarkly
+  - kind: lever
+    company_slug: render
+    label: Render
+  - kind: greenhouse
+    company_slug: snyk
+    label: Snyk
+  - kind: greenhouse
+    company_slug: circleci
+    label: CircleCI
+  - kind: greenhouse
+    company_slug: dbt-labs
+    label: dbt Labs
+  - kind: greenhouse
+    company_slug: temporal
+    label: Temporal
+  - kind: greenhouse
+    company_slug: pulumi
+    label: Pulumi
+  - kind: ashby
+    company_slug: railway
+    label: Railway
+  - kind: ashby
+    company_slug: fly
+    label: Fly.io
+  - kind: greenhouse
+    company_slug: airtable
+    label: Airtable
+  - kind: greenhouse
+    company_slug: retool
+    label: Retool
+  - kind: greenhouse
+    company_slug: postman
+    label: Postman
 
-  # ────────── Fintech ──────────
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  FINTECH
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   - kind: greenhouse
     company_slug: stripe
     label: Stripe
   - kind: ashby
-    company_slug: plaid           # was greenhouse:plaid (404); ashby:plaid works
+    company_slug: plaid
     label: Plaid
   - kind: greenhouse
     company_slug: brex
     label: Brex
   - kind: greenhouse
-    company_slug: rampnetwork     # was greenhouse:ramp (404); rampnetwork works
+    company_slug: rampnetwork
     label: Ramp
   - kind: greenhouse
     company_slug: mercury
@@ -149,8 +238,31 @@ sources:
   - kind: greenhouse
     company_slug: gusto
     label: Gusto
+  - kind: greenhouse
+    company_slug: chime
+    label: Chime
+  - kind: greenhouse
+    company_slug: marqeta
+    label: Marqeta
+  - kind: lever
+    company_slug: affirm
+    label: Affirm
+  - kind: greenhouse
+    company_slug: sofi
+    label: SoFi
+  - kind: greenhouse
+    company_slug: nerdwallet
+    label: NerdWallet
+  - kind: greenhouse
+    company_slug: rippling
+    label: Rippling
+  - kind: greenhouse
+    company_slug: carta
+    label: Carta
 
-  # ────────── Consumer / marketplaces ──────────
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  CONSUMER / MARKETPLACES / SOCIAL
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   - kind: greenhouse
     company_slug: airbnb
     label: Airbnb
@@ -167,15 +279,167 @@ sources:
     company_slug: asana
     label: Asana
   - kind: greenhouse
-    company_slug: discord         # was lever:discord (404); greenhouse:discord works
+    company_slug: discord
     label: Discord
+  - kind: greenhouse
+    company_slug: spotify
+    label: Spotify
+  - kind: greenhouse
+    company_slug: duolingo
+    label: Duolingo
+  - kind: greenhouse
+    company_slug: instacart
+    label: Instacart
+  - kind: lever
+    company_slug: lyft
+    label: Lyft
+  - kind: greenhouse
+    company_slug: snap
+    label: Snap Inc.
+  - kind: greenhouse
+    company_slug: zillow
+    label: Zillow
+  - kind: greenhouse
+    company_slug: dropbox
+    label: Dropbox
+  - kind: greenhouse
+    company_slug: hinge
+    label: Hinge
+  - kind: greenhouse
+    company_slug: etsy
+    label: Etsy
+  - kind: lever
+    company_slug: grammarly
+    label: Grammarly
+  - kind: greenhouse
+    company_slug: nextdoor
+    label: Nextdoor
+  - kind: greenhouse
+    company_slug: pinterestjobs
+    label: Pinterest
 
-  # Removed (couldn't find a working public-board slug at audit time):
-  # - HashiCorp, Snowflake, Weights & Biases, Hugging Face,
-  #   Groq, Coinbase, DoorDash. If you find a working slug,
-  #   add it back and verify with `--probe-watchlist`.
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  ENTERPRISE SAAS / B2B
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - kind: greenhouse
+    company_slug: canva
+    label: Canva
+  - kind: greenhouse
+    company_slug: notion-so
+    label: Notion (alt slug)
+  - kind: greenhouse
+    company_slug: flexport
+    label: Flexport
+  - kind: greenhouse
+    company_slug: webflow
+    label: Webflow
+  - kind: greenhouse
+    company_slug: amplitude
+    label: Amplitude
+  - kind: greenhouse
+    company_slug: braze
+    label: Braze
+  - kind: greenhouse
+    company_slug: contentful
+    label: Contentful
+  - kind: greenhouse
+    company_slug: miro
+    label: Miro
+  - kind: greenhouse
+    company_slug: zapier
+    label: Zapier
+  - kind: greenhouse
+    company_slug: calendly
+    label: Calendly
+  - kind: greenhouse
+    company_slug: onepassword
+    label: 1Password
+  - kind: lever
+    company_slug: loom
+    label: Loom
+  - kind: greenhouse
+    company_slug: deel
+    label: Deel
+  - kind: greenhouse
+    company_slug: lattice
+    label: Lattice
+  - kind: greenhouse
+    company_slug: openphone
+    label: OpenPhone
 
-  # ────────── HN Who's Hiring (monthly thread) ──────────
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  SECURITY / CYBER
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - kind: greenhouse
+    company_slug: crowdstrike
+    label: CrowdStrike
+  - kind: greenhouse
+    company_slug: paloaltonetworks
+    label: Palo Alto Networks
+  - kind: greenhouse
+    company_slug: 1password
+    label: 1Password (alt)
+  - kind: greenhouse
+    company_slug: wiz
+    label: Wiz
+  - kind: lever
+    company_slug: orca-security
+    label: Orca Security
+  - kind: greenhouse
+    company_slug: lacework
+    label: Lacework
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  HEALTH / BIOTECH
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - kind: greenhouse
+    company_slug: tempus
+    label: Tempus AI
+  - kind: lever
+    company_slug: color
+    label: Color Health
+  - kind: greenhouse
+    company_slug: flatiron
+    label: Flatiron Health
+  - kind: greenhouse
+    company_slug: ro
+    label: Ro
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  GAMING / MEDIA
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - kind: greenhouse
+    company_slug: riotgames
+    label: Riot Games
+  - kind: greenhouse
+    company_slug: epicgames
+    label: Epic Games
+  - kind: greenhouse
+    company_slug: unity
+    label: Unity
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  ROBOTICS / HARDWARE / SPACE
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  - kind: greenhouse
+    company_slug: relativityspace
+    label: Relativity Space
+  - kind: greenhouse
+    company_slug: zipline
+    label: Zipline
+  - kind: lever
+    company_slug: cruise
+    label: Cruise
+  - kind: greenhouse
+    company_slug: aurora-innovation
+    label: Aurora Innovation
+  - kind: greenhouse
+    company_slug: nuro
+    label: Nuro
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  HN WHO'S HIRING (monthly thread)
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   # The scraper now correctly fetches the *current month's* thread via
   # search_by_date. Keywords below are inclusive; narrow them if too noisy.
   - kind: hn_who_is_hiring
@@ -189,3 +453,5 @@ sources:
       - new grad
       - new graduate
       - entry level
+      - junior
+      - intern

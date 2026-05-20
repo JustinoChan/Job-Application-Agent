@@ -171,3 +171,12 @@ export interface CoverLetterList {
   job_id: string;
   versions: number[];
 }
+
+export interface BrowserApplyResult {
+  job_id: string;
+  url: string;
+  fields_filled: string[];
+  resume_attached: boolean;
+  paused: boolean;
+  error?: string | null;
+}
