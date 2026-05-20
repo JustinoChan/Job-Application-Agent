@@ -86,11 +86,14 @@ def parse_job_description(
                 all_keywords.append(kw)
                 seen.add(kw)
 
+    experience_level = _detect_experience_level(raw_text, title)
+
     return JobPosting(
         raw_text=raw_text,
         company=company,
         title=title,
         location=location,
+        experience_level=experience_level,
         requirements=requirements,
         responsibilities=responsibilities,
         nice_to_haves=nice_to_haves,
@@ -283,6 +286,56 @@ def _extract_keywords_from_line(
             seen.add(canonical)
 
     return matched
+
+
+_EXPERIENCE_LEVEL_PATTERNS: list[tuple[str, re.Pattern]] = [
+    ("intern", re.compile(
+        r"(?i)\b(?:intern(?:ship)?)\b"
+    )),
+    ("entry-level", re.compile(
+        r"(?i)(?:"
+        r"\bentry[\s\-]?level\b"
+        r"|\bnew\s+grad(?:uate?)?\b"
+        r"|\brecent\s+grad(?:uate?)?\b"
+        r"|\b(?:0|zero)[\s\-]?(?:to|\-)[\s\-]?[12]\s*(?:year|yr)s?\b"
+        r"|\bjunior\b"
+        r"|\bearly[\s\-]?career\b"
+        r"|\bassociate\s+(?:software|developer|engineer)\b"
+        r")"
+    )),
+    ("mid-level", re.compile(
+        r"(?i)(?:"
+        r"\bmid[\s\-]?level\b"
+        r"|\b[2-5]\+?\s*(?:year|yr)s?\s*(?:of\s+)?(?:experience|exp)\b"
+        r")"
+    )),
+    ("senior", re.compile(
+        r"(?i)(?:"
+        r"\bsenior\b"
+        r"|\bsr\.?\b"
+        r"|\bstaff\b"
+        r"|\bprincipal\b"
+        r"|\b[5-9]\+?\s*(?:year|yr)s?\s*(?:of\s+)?(?:experience|exp)\b"
+        r"|\b\d{2}\+?\s*(?:year|yr)s?\s*(?:of\s+)?(?:experience|exp)\b"
+        r"|\blead\b"
+        r")"
+    )),
+]
+
+
+def _detect_experience_level(text: str, title: str) -> str | None:
+    combined = f"{title}\n{text}"
+    title_lower = title.lower()
+    if re.search(r"\bintern(?:ship)?\b", title_lower):
+        return "intern"
+    if any(kw in title_lower for kw in ["junior", "jr.", "jr ", "entry"]):
+        return "entry-level"
+    if any(kw in title_lower for kw in ["senior", "sr.", "sr ", "staff", "principal", "lead"]):
+        return "senior"
+    for level, pattern in _EXPERIENCE_LEVEL_PATTERNS:
+        if pattern.search(combined):
+            return level
+    return None
 
 
 def _extract_location(text: str) -> str | None:

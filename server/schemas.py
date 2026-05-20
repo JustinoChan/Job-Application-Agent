@@ -151,6 +151,7 @@ class JobAnalysisResponse(BaseModel):
     location: str | None = None
     url: str | None = None
     source: str | None = None
+    experience_level: str | None = None
     requirements: list[str]
     nice_to_haves: list[str]
     responsibilities: list[str]

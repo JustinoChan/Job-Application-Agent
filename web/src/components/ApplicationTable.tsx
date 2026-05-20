@@ -117,7 +117,13 @@ export default function ApplicationTable({ applications, selectedIds, onSelectio
             <td><Link to={`/job/${app.job_id}`}>{app.company}</Link></td>
             <td>{app.role}</td>
             <td><StatusBadge status={app.status} /></td>
-            <td>{app.fit_score == null ? "-" : `${Math.round(app.fit_score * 100)}%`}</td>
+            <td>
+              {app.fit_score == null ? "-" : (
+                <span className={`fit-cell ${fitClass(app.fit_score)}`}>
+                  {Math.round(app.fit_score * 100)}%
+                </span>
+              )}
+            </td>
             <td>{app.posted_at || "-"}</td>
             <td>{app.date_updated}</td>
             <td>{app.audit_verdict || "-"}</td>
@@ -132,6 +138,13 @@ export default function ApplicationTable({ applications, selectedIds, onSelectio
       </tbody>
     </table>
   );
+}
+
+function fitClass(score: number): string {
+  if (score >= 0.75) return "fit-strong";
+  if (score >= 0.5) return "fit-moderate";
+  if (score >= 0.3) return "fit-weak";
+  return "fit-skip";
 }
 
 function compare(a: TrackerEntry, b: TrackerEntry, key: SortKey, dir: SortDir): number {

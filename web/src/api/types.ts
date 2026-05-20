@@ -38,6 +38,7 @@ export interface JobAnalysis {
   location?: string | null;
   url?: string | null;
   source?: string | null;
+  experience_level?: string | null;
   requirements: string[];
   nice_to_haves: string[];
   responsibilities: string[];
@@ -91,9 +92,20 @@ export interface SkillMatch {
   source: string;
 }
 
+export interface ProjectScore {
+  project_id: string;
+  project_name: string;
+  relevance_score: number;
+  matched_keywords: string[];
+  matched_themes: string[];
+}
+
 export interface FitScore {
   overall_score: number;
   skill_matches: SkillMatch[];
+  skill_match_rate: number;
+  nice_to_have_match_rate: number;
+  project_scores: ProjectScore[];
   missing_required: string[];
   missing_nice_to_haves: string[];
   recommendation: string;

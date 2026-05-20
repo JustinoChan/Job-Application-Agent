@@ -372,6 +372,7 @@ def get_job_analysis(job_id: str) -> JobAnalysisResponse:
         location=entry.location or job.location,
         url=entry.url,
         source=entry.source,
+        experience_level=job.experience_level,
         requirements=[req.text for req in job.requirements],
         nice_to_haves=[req.text for req in job.nice_to_haves],
         responsibilities=job.responsibilities,

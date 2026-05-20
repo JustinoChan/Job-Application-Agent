@@ -12,6 +12,7 @@ always_include_skills:
 
 preferred_project_order:
   - capstone-archive
+  - ascension-ai
   - search-engine
 
 min_fit_score_to_apply: 0.3
@@ -69,3 +70,60 @@ keyword_synonyms:
     - Version Control
   "C++":
     - CPP
+  "Node.js":
+    - Node
+    - NodeJS
+  "Strong Communication":
+    - communication skills
+    - written communication
+    - verbal communication
+    - interpersonal skills
+    - effective communication
+    - communication
+  "Teamwork & Collaboration":
+    - teamwork
+    - collaboration
+    - team player
+    - cross-functional
+    - collaborative
+    - team environment
+    - work in a team
+  "Problem-Solving":
+    - problem solving
+    - analytical skills
+    - critical thinking
+    - troubleshooting
+    - analytical thinking
+  "Quick Learner":
+    - fast learner
+    - eager to learn
+    - continuous learning
+    - willingness to learn
+    - self-starter
+    - growth mindset
+  "Adaptability":
+    - flexible
+    - adaptable
+    - versatile
+  "Self-Motivated":
+    - self motivated
+    - self-driven
+    - independent
+    - proactive
+    - initiative
+  "Attention to Detail":
+    - detail oriented
+    - detail-oriented
+    - meticulous
+  "Time Management":
+    - time management
+    - prioritization
+    - organizational skills
+  PyTorch:
+    - Torch
+  NumPy:
+    - Numpy
+  Agile:
+    - Scrum
+    - Kanban
+    - sprint

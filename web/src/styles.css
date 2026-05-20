@@ -343,6 +343,161 @@ label {
   padding-left: 18px;
 }
 
+.fit-columns li {
+  margin: 3px 0;
+}
+
+.skill-source {
+  color: #78716c;
+  font-size: 0.8em;
+  margin-left: 6px;
+}
+
+.rec-badge {
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 10px;
+}
+
+.rec-strong {
+  background: #e8f7f0;
+  color: #047857;
+}
+
+.rec-moderate {
+  background: #e8f1ff;
+  color: #1d4ed8;
+}
+
+.rec-weak {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.rec-skip {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.fit-rates {
+  display: flex;
+  gap: 24px;
+  margin: 10px 0;
+}
+
+.rate-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.rate-label {
+  color: #57534e;
+  font-size: 13px;
+}
+
+.rate-value {
+  color: #b9471b;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.project-scores {
+  margin-top: 14px;
+}
+
+.project-scores h3 {
+  margin: 0 0 10px;
+}
+
+.project-score-row {
+  margin-bottom: 12px;
+}
+
+.project-score-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.project-score-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.project-score-pct {
+  color: #b9471b;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.project-score-bar-bg {
+  background: #f3f0ec;
+  border-radius: 4px;
+  height: 6px;
+  width: 100%;
+}
+
+.project-score-bar-fill {
+  background: #b9471b;
+  border-radius: 4px;
+  height: 100%;
+  min-width: 2px;
+  transition: width 0.3s;
+}
+
+.project-score-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.exp-badge {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+}
+
+.exp-intern,
+.exp-entry-level {
+  background: #e8f7f0;
+  color: #047857;
+}
+
+.exp-mid-level {
+  background: #e8f1ff;
+  color: #1d4ed8;
+}
+
+.exp-senior {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.fit-cell {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.fit-strong {
+  color: #047857;
+}
+
+.fit-moderate {
+  color: #1d4ed8;
+}
+
+.fit-weak {
+  color: #c2410c;
+}
+
+.fit-skip {
+  color: #b91c1c;
+}
+
 .audit-summary {
   align-items: center;
   border-radius: 8px;

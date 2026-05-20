@@ -157,6 +157,11 @@ export default function JobDetail() {
           <h1>{entry.company}</h1>
           <p>{entry.role}</p>
           <div className="detail-meta">
+            {analysis?.experience_level && (
+              <span className={`exp-badge exp-${analysis.experience_level}`}>
+                {analysis.experience_level}
+              </span>
+            )}
             {location && <span className="meta-chip">{location}</span>}
             {entry.posted_at && <span className="meta-chip">Posted {entry.posted_at}</span>}
             {entry.source && <span className="meta-chip">{entry.source}</span>}

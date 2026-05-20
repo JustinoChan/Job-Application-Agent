@@ -92,6 +92,7 @@ class JobPosting(BaseModel):
     company: str = "Unknown"
     title: str = "Unknown"
     location: Optional[str] = None
+    experience_level: Optional[str] = None
     requirements: list[JobRequirement] = Field(default_factory=list)
     responsibilities: list[str] = Field(default_factory=list)
     nice_to_haves: list[JobRequirement] = Field(default_factory=list)
