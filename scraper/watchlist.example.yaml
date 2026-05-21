@@ -1,6 +1,6 @@
 # Watchlist for the scraper. Copy to `watchlist.yaml` (gitignored on the VM) and edit.
 #
-# All slugs in this file were probed live before commit. If you change a slug
+# All slugs in this file were probed live on 2026-05-21. If you change a slug
 # or add a new entry, verify it with:
 #
 #   python -m scraper.main --probe-watchlist
@@ -9,8 +9,8 @@
 # empty / etc. so you can prune dead entries before the next scheduled run.
 #
 # Note on FAANG / big tech:
-#   Companies on Workday (Salesforce, NVIDIA, Adobe, etc.) are now supported
-#   via the `workday` adapter — see the BIG TECH / WORKDAY section below.
+#   Companies on Workday (NVIDIA, Adobe, etc.) are supported via the `workday`
+#   adapter — see the BIG TECH / WORKDAY section below.
 #
 #   These FAANG companies use proprietary career sites and need dedicated
 #   adapters (not yet built):
@@ -83,9 +83,6 @@ sources:
     company_slug: runway
     label: Runway
   - kind: ashby
-    company_slug: mistral
-    label: Mistral AI
-  - kind: ashby
     company_slug: cohere
     label: Cohere
   - kind: greenhouse
@@ -94,24 +91,6 @@ sources:
   - kind: greenhouse
     company_slug: deepmind
     label: DeepMind
-  - kind: lever
-    company_slug: adept
-    label: Adept AI
-  - kind: ashby
-    company_slug: together-ai
-    label: Together AI
-  - kind: lever
-    company_slug: midjourney
-    label: Midjourney
-  - kind: greenhouse
-    company_slug: stability
-    label: Stability AI
-  - kind: ashby
-    company_slug: anduril
-    label: Anduril Industries
-  - kind: greenhouse
-    company_slug: shield-ai
-    label: Shield AI
   - kind: lever
     company_slug: imbue
     label: Imbue
@@ -165,9 +144,6 @@ sources:
     company_slug: posthog
     label: PostHog
   - kind: greenhouse
-    company_slug: hashicorp
-    label: HashiCorp
-  - kind: greenhouse
     company_slug: netlify
     label: Netlify
   - kind: greenhouse
@@ -180,44 +156,20 @@ sources:
     company_slug: planetscale
     label: PlanetScale
   - kind: greenhouse
-    company_slug: grafana-labs
-    label: Grafana Labs
-  - kind: greenhouse
-    company_slug: sentry
-    label: Sentry
-  - kind: greenhouse
     company_slug: launchdarkly
     label: LaunchDarkly
-  - kind: lever
-    company_slug: render
-    label: Render
-  - kind: greenhouse
-    company_slug: snyk
-    label: Snyk
   - kind: greenhouse
     company_slug: circleci
     label: CircleCI
   - kind: greenhouse
-    company_slug: dbt-labs
-    label: dbt Labs
-  - kind: greenhouse
     company_slug: temporal
     label: Temporal
-  - kind: greenhouse
-    company_slug: pulumi
-    label: Pulumi
   - kind: ashby
     company_slug: railway
     label: Railway
-  - kind: ashby
-    company_slug: fly
-    label: Fly.io
   - kind: greenhouse
     company_slug: airtable
     label: Airtable
-  - kind: greenhouse
-    company_slug: retool
-    label: Retool
   - kind: greenhouse
     company_slug: postman
     label: Postman
@@ -252,18 +204,9 @@ sources:
   - kind: greenhouse
     company_slug: marqeta
     label: Marqeta
-  - kind: lever
-    company_slug: affirm
-    label: Affirm
   - kind: greenhouse
     company_slug: sofi
     label: SoFi
-  - kind: greenhouse
-    company_slug: nerdwallet
-    label: NerdWallet
-  - kind: greenhouse
-    company_slug: rippling
-    label: Rippling
   - kind: greenhouse
     company_slug: carta
     label: Carta
@@ -290,51 +233,21 @@ sources:
     company_slug: discord
     label: Discord
   - kind: greenhouse
-    company_slug: spotify
-    label: Spotify
-  - kind: greenhouse
     company_slug: duolingo
     label: Duolingo
   - kind: greenhouse
     company_slug: instacart
     label: Instacart
-  - kind: lever
-    company_slug: lyft
-    label: Lyft
-  - kind: greenhouse
-    company_slug: snap
-    label: Snap Inc.
-  - kind: greenhouse
-    company_slug: zillow
-    label: Zillow
   - kind: greenhouse
     company_slug: dropbox
     label: Dropbox
   - kind: greenhouse
-    company_slug: hinge
-    label: Hinge
-  - kind: greenhouse
-    company_slug: etsy
-    label: Etsy
-  - kind: lever
-    company_slug: grammarly
-    label: Grammarly
-  - kind: greenhouse
     company_slug: nextdoor
     label: Nextdoor
-  - kind: greenhouse
-    company_slug: pinterestjobs
-    label: Pinterest
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #  ENTERPRISE SAAS / B2B
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  - kind: greenhouse
-    company_slug: canva
-    label: Canva
-  - kind: greenhouse
-    company_slug: notion-so
-    label: Notion (alt slug)
   - kind: greenhouse
     company_slug: flexport
     label: Flexport
@@ -351,67 +264,11 @@ sources:
     company_slug: contentful
     label: Contentful
   - kind: greenhouse
-    company_slug: miro
-    label: Miro
-  - kind: greenhouse
-    company_slug: zapier
-    label: Zapier
-  - kind: greenhouse
     company_slug: calendly
     label: Calendly
   - kind: greenhouse
-    company_slug: onepassword
-    label: 1Password
-  - kind: lever
-    company_slug: loom
-    label: Loom
-  - kind: greenhouse
-    company_slug: deel
-    label: Deel
-  - kind: greenhouse
     company_slug: lattice
     label: Lattice
-  - kind: greenhouse
-    company_slug: openphone
-    label: OpenPhone
-
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  #  SECURITY / CYBER
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  - kind: greenhouse
-    company_slug: crowdstrike
-    label: CrowdStrike
-  - kind: greenhouse
-    company_slug: paloaltonetworks
-    label: Palo Alto Networks
-  - kind: greenhouse
-    company_slug: 1password
-    label: 1Password (alt)
-  - kind: greenhouse
-    company_slug: wiz
-    label: Wiz
-  - kind: lever
-    company_slug: orca-security
-    label: Orca Security
-  - kind: greenhouse
-    company_slug: lacework
-    label: Lacework
-
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  #  HEALTH / BIOTECH
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  - kind: greenhouse
-    company_slug: tempus
-    label: Tempus AI
-  - kind: lever
-    company_slug: color
-    label: Color Health
-  - kind: greenhouse
-    company_slug: flatiron
-    label: Flatiron Health
-  - kind: greenhouse
-    company_slug: ro
-    label: Ro
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #  GAMING / MEDIA
@@ -422,25 +279,10 @@ sources:
   - kind: greenhouse
     company_slug: epicgames
     label: Epic Games
-  - kind: greenhouse
-    company_slug: unity
-    label: Unity
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #  ROBOTICS / HARDWARE / SPACE
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  - kind: greenhouse
-    company_slug: relativityspace
-    label: Relativity Space
-  - kind: greenhouse
-    company_slug: zipline
-    label: Zipline
-  - kind: lever
-    company_slug: cruise
-    label: Cruise
-  - kind: greenhouse
-    company_slug: aurora-innovation
-    label: Aurora Innovation
   - kind: greenhouse
     company_slug: nuro
     label: Nuro
@@ -458,11 +300,6 @@ sources:
   #
   # Verify with: python -m scraper.main --probe-watchlist
   - kind: workday
-    company_slug: salesforce
-    label: Salesforce
-    workday_host: salesforce.wd12.myworkdayjobs.com
-    workday_site: External
-  - kind: workday
     company_slug: nvidia
     label: NVIDIA
     workday_host: nvidia.wd5.myworkdayjobs.com
@@ -472,16 +309,6 @@ sources:
     label: Adobe
     workday_host: adobe.wd5.myworkdayjobs.com
     workday_site: external_experienced
-  - kind: workday
-    company_slug: servicenow
-    label: ServiceNow
-    workday_host: servicenow.wd1.myworkdayjobs.com
-    workday_site: Careers
-  - kind: workday
-    company_slug: visa
-    label: Visa
-    workday_host: visa.wd12.myworkdayjobs.com
-    workday_site: Visa_Careers
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #  HN WHO'S HIRING (monthly thread)
