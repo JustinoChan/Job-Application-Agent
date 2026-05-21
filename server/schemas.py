@@ -180,6 +180,11 @@ class BulkArchiveResponse(BaseModel):
     updated: int
 
 
+class DeleteResponse(BaseModel):
+    job_id: str
+    deleted_files: list[str] = []
+
+
 class BrowserApplyRequest(BaseModel):
     url_override: str | None = None
     headless: bool = False

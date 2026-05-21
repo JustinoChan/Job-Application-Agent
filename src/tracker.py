@@ -316,6 +316,28 @@ def get_entry(tracker_path: Path, job_id: str) -> TrackerEntry | None:
         return None
 
 
+def delete_entry(tracker_path: Path, job_id: str) -> bool:
+    with tracker_lock():
+        if not tracker_path.exists():
+            return False
+        _migrate_if_needed_unlocked(tracker_path)
+        rows: list[dict] = []
+        found = False
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row["job_id"] == job_id:
+                    found = True
+                    continue
+                rows.append(row)
+        if found:
+            with open(tracker_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
+                writer.writeheader()
+                writer.writerows(rows)
+        return found
+
+
 def get_latest_entry(tracker_path: Path) -> TrackerEntry | None:
     with tracker_lock():
         if not tracker_path.exists():

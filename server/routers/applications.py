@@ -14,6 +14,7 @@ from server.schemas import (
     BrowserApplyRequest,
     BrowserApplyResponse,
     BulkArchiveRequest,
+    DeleteResponse,
     BulkArchiveResponse,
     ConfirmRequest,
     ConfirmResponse,
@@ -355,6 +356,38 @@ def set_star(job_id: str, request: StarRequest):
     if refreshed is None:
         raise HTTPException(status_code=404, detail="Application not found.")
     return refreshed
+
+
+@router.delete("/{job_id}", response_model=DeleteResponse)
+def delete_application(job_id: str) -> DeleteResponse:
+    """Permanently delete a job and all its generated artifacts."""
+    import shutil
+
+    entry = tracker.get_entry(config.TRACKER_PATH, job_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+
+    deleted_files: list[str] = []
+
+    raw_path = config.JOBS_RAW_DIR / f"{job_id}.txt"
+    if raw_path.exists():
+        raw_path.unlink()
+        deleted_files.append(str(raw_path))
+
+    resume_dir = config.job_resume_dir(job_id)
+    if resume_dir.exists():
+        shutil.rmtree(resume_dir)
+        deleted_files.append(str(resume_dir))
+
+    cl_dir = config.job_cover_letter_dir(job_id)
+    if cl_dir.exists():
+        shutil.rmtree(cl_dir)
+        deleted_files.append(str(cl_dir))
+
+    tracker.delete_entry(config.TRACKER_PATH, job_id)
+    _log.info("deleted job %s and %d artifact paths", job_id, len(deleted_files))
+
+    return DeleteResponse(job_id=job_id, deleted_files=deleted_files)
 
 
 @router.put("/{job_id}/status", response_model=TrackerEntryResponse)

@@ -16,11 +16,12 @@ log = logging.getLogger(__name__)
 
 _WEBHOOK_URL: str | None = None
 _FIT_THRESHOLD: float = 0.5
+_PING_USER_ID: str | None = None
 _LOADED = False
 
 
 def _load_config() -> None:
-    global _WEBHOOK_URL, _FIT_THRESHOLD, _LOADED
+    global _WEBHOOK_URL, _FIT_THRESHOLD, _PING_USER_ID, _LOADED
     if _LOADED:
         return
     _WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "").strip() or None
@@ -28,6 +29,7 @@ def _load_config() -> None:
         _FIT_THRESHOLD = float(os.getenv("NOTIFICATION_FIT_THRESHOLD", "0.5"))
     except ValueError:
         _FIT_THRESHOLD = 0.5
+    _PING_USER_ID = os.getenv("DISCORD_PING_USER_ID", "").strip() or None
     _LOADED = True
 
 
@@ -106,7 +108,8 @@ def send_new_job_notification(
         "footer": {"text": "Job Application Agent"},
     }
 
-    payload = {"embeds": [embed]}
+    ping = f"<@{_PING_USER_ID}>" if _PING_USER_ID else ""
+    payload = {"content": ping, "embeds": [embed]}
 
     try:
         with httpx.Client(timeout=10) as client:
