@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { TrackerEntry } from "../api/types";
-import StatusBadge from "./StatusBadge";
 
-type SortKey = "company" | "role" | "status" | "fit_score" | "posted_at" | "date_updated" | "starred";
+type SortKey = "company" | "role" | "status" | "fit_score" | "posted_at" | "date_added" | "date_updated" | "starred";
 type SortDir = "asc" | "desc";
 
 interface Props {
@@ -11,6 +10,9 @@ interface Props {
   selectedIds: Set<string>;
   onSelectionChange: (next: Set<string>) => void;
   onToggleStar: (jobId: string, starred: boolean) => void;
+  onDelete: (jobId: string) => void;
+  onStatusChange: (jobId: string, status: TrackerEntry["status"]) => void;
+  onNotesChange: (jobId: string, notes: string) => void;
 }
 
 const SORTABLE: Array<{ key: SortKey; label: string }> = [
@@ -19,13 +21,31 @@ const SORTABLE: Array<{ key: SortKey; label: string }> = [
   { key: "role", label: "Role" },
   { key: "status", label: "Status" },
   { key: "fit_score", label: "Fit" },
-  { key: "posted_at", label: "Posted" },
-  { key: "date_updated", label: "Updated" }
+  { key: "date_added", label: "Added" },
+  { key: "date_updated", label: "Updated" },
 ];
 
-export default function ApplicationTable({ applications, selectedIds, onSelectionChange, onToggleStar }: Props) {
+const STATUS_OPTIONS: Array<{ value: TrackerEntry["status"]; label: string }> = [
+  { value: "found", label: "Found" },
+  { value: "prepared", label: "Prepared" },
+  { value: "reviewed", label: "Reviewed" },
+  { value: "submitted", label: "Applied" },
+  { value: "interview", label: "Interview" },
+  { value: "assessment", label: "Assessment" },
+  { value: "offer", label: "Offer" },
+  { value: "rejected", label: "Rejected" },
+  { value: "ghosted", label: "Ghosted" },
+  { value: "archived", label: "Archived" },
+];
+
+export default function ApplicationTable({
+  applications, selectedIds, onSelectionChange,
+  onToggleStar, onDelete, onStatusChange, onNotesChange,
+}: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("fit_score");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [expandedNote, setExpandedNote] = useState<string | null>(null);
+  const [editingNote, setEditingNote] = useState("");
 
   const sorted = useMemo(() => {
     const items = [...applications];
@@ -57,6 +77,20 @@ export default function ApplicationTable({ applications, selectedIds, onSelectio
     }
   }
 
+  function openNote(app: TrackerEntry) {
+    if (expandedNote === app.job_id) {
+      setExpandedNote(null);
+    } else {
+      setExpandedNote(app.job_id);
+      setEditingNote(app.notes || "");
+    }
+  }
+
+  function saveNote(jobId: string) {
+    onNotesChange(jobId, editingNote);
+    setExpandedNote(null);
+  }
+
   if (applications.length === 0) {
     return (
       <div className="empty-state">
@@ -68,75 +102,130 @@ export default function ApplicationTable({ applications, selectedIds, onSelectio
   }
 
   return (
-    <table className="application-table">
-      <thead>
-        <tr>
-          <th>
-            <input
-              type="checkbox"
-              checked={selectedIds.size > 0 && selectedIds.size === sorted.length}
-              onChange={toggleAll}
-              title="Select all"
-            />
-          </th>
-          {SORTABLE.map(({ key, label }) => (
-            <th
-              key={key}
-              className="sortable"
-              onClick={() => handleSort(key)}
-              title="Click to sort"
-            >
-              {label}{sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
-            </th>
-          ))}
-          <th>Audit</th>
-          <th>Ver</th>
-          <th>Link</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sorted.map((app) => (
-          <tr key={app.job_id} className={selectedIds.has(app.job_id) ? "selected" : ""}>
-            <td>
+    <div className="table-card">
+      <table className="application-table">
+        <thead>
+          <tr>
+            <th className="col-check">
               <input
                 type="checkbox"
-                checked={selectedIds.has(app.job_id)}
-                onChange={() => toggleRow(app.job_id)}
+                checked={selectedIds.size > 0 && selectedIds.size === sorted.length}
+                onChange={toggleAll}
+                title="Select all"
               />
-            </td>
-            <td>
-              <button
-                type="button"
-                className={`star-btn${app.starred ? " starred" : ""}`}
-                onClick={() => onToggleStar(app.job_id, !app.starred)}
-                title={app.starred ? "Unstar" : "Star this job"}
+            </th>
+            <th className="col-num">#</th>
+            {SORTABLE.map(({ key, label }) => (
+              <th
+                key={key}
+                className="sortable"
+                onClick={() => handleSort(key)}
+                title="Click to sort"
               >
-                {app.starred ? "★" : "☆"}
-              </button>
-            </td>
-            <td><Link to={`/job/${app.job_id}`}>{app.company}</Link></td>
-            <td>{app.role}</td>
-            <td><StatusBadge status={app.status} /></td>
-            <td>
-              {app.fit_score == null ? "-" : (
-                <span className={`fit-cell ${fitClass(app.fit_score)}`}>
-                  {Math.round(app.fit_score * 100)}%
-                </span>
-              )}
-            </td>
-            <td>{app.posted_at || "-"}</td>
-            <td>{app.date_updated}</td>
-            <td>{app.audit_verdict || "-"}</td>
-            <td>{app.latest_resume_version ? `v${String(app.latest_resume_version).padStart(3, "0")}` : "-"}</td>
-            <td>
-              {app.url ? (
-                <a href={app.url} target="_blank" rel="noreferrer" title={app.url} onClick={(e) => e.stopPropagation()}>↗</a>
-              ) : "-"}
-            </td>
+                {label}{sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+              </th>
+            ))}
+            <th>Ver</th>
+            <th>Link</th>
+            <th className="col-notes">Notes</th>
+            <th></th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {sorted.map((app, idx) => (
+            <>
+              <tr key={app.job_id} className={selectedIds.has(app.job_id) ? "selected" : ""}>
+                <td className="col-check">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(app.job_id)}
+                    onChange={() => toggleRow(app.job_id)}
+                  />
+                </td>
+                <td className="col-num">{idx + 1}</td>
+                <td>
+                  <button
+                    type="button"
+                    className={`star-btn${app.starred ? " starred" : ""}`}
+                    onClick={() => onToggleStar(app.job_id, !app.starred)}
+                    title={app.starred ? "Unstar" : "Star this job"}
+                  >
+                    {app.starred ? "★" : "☆"}
+                  </button>
+                </td>
+                <td><Link to={`/job/${app.job_id}`} className="company-link">{app.company}</Link></td>
+                <td className="role-cell">{app.role}</td>
+                <td>
+                  <select
+                    className={`status-select status-${app.status}`}
+                    value={app.status}
+                    onChange={(e) => onStatusChange(app.job_id, e.target.value as TrackerEntry["status"])}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  {app.fit_score == null ? "-" : (
+                    <span className={`fit-cell ${fitClass(app.fit_score)}`}>
+                      {Math.round(app.fit_score * 100)}%
+                    </span>
+                  )}
+                </td>
+                <td className="date-cell">{app.date_added || "-"}</td>
+                <td className="date-cell">{app.date_updated}</td>
+                <td>{app.latest_resume_version ? `v${String(app.latest_resume_version).padStart(3, "0")}` : "-"}</td>
+                <td>
+                  {app.url ? (
+                    <a href={app.url} target="_blank" rel="noreferrer" title={app.url} className="link-icon" onClick={(e) => e.stopPropagation()}>↗</a>
+                  ) : "-"}
+                </td>
+                <td className="col-notes">
+                  <button
+                    type="button"
+                    className={`notes-toggle${app.notes ? " has-notes" : ""}`}
+                    onClick={() => openNote(app)}
+                    title={app.notes || "Add notes"}
+                  >
+                    {app.notes ? "📝" : "＋"}
+                  </button>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="delete-btn"
+                    onClick={(e) => { e.stopPropagation(); onDelete(app.job_id); }}
+                    title="Delete this job and all artifacts"
+                  >
+                    ✕
+                  </button>
+                </td>
+              </tr>
+              {expandedNote === app.job_id && (
+                <tr key={`${app.job_id}-note`} className="note-row">
+                  <td colSpan={14}>
+                    <div className="note-editor">
+                      <textarea
+                        value={editingNote}
+                        onChange={(e) => setEditingNote(e.target.value)}
+                        placeholder="Add notes about this application..."
+                        rows={2}
+                      />
+                      <div className="note-actions">
+                        <button onClick={() => saveNote(app.job_id)}>Save</button>
+                        <button className="secondary" onClick={() => setExpandedNote(null)}>Cancel</button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -160,6 +249,8 @@ function compare(a: TrackerEntry, b: TrackerEntry, key: SortKey, dir: SortDir): 
       return sign * ((a.fit_score ?? -1) - (b.fit_score ?? -1));
     case "posted_at":
       return sign * ((a.posted_at || "").localeCompare(b.posted_at || ""));
+    case "date_added":
+      return sign * (a.date_added || "").localeCompare(b.date_added || "");
     case "date_updated":
       return sign * a.date_updated.localeCompare(b.date_updated);
     case "starred":

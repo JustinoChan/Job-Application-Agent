@@ -4,6 +4,8 @@ export interface FilterState {
   minFit: number;
   company: string;
   search: string;
+  dateFrom: string;
+  dateTo: string;
 }
 
 interface FilterBarProps {
@@ -55,13 +57,29 @@ export default function FilterBar({ value, onChange }: FilterBarProps) {
           onChange={(e) => setSearch(e.target.value)}
         />
       </label>
-      {(value.minFit > 0 || value.company || value.search) && (
+      <label className="filter-field">
+        <span>From</span>
+        <input
+          type="date"
+          value={value.dateFrom}
+          onChange={(e) => onChange({ ...value, dateFrom: e.target.value })}
+        />
+      </label>
+      <label className="filter-field">
+        <span>To</span>
+        <input
+          type="date"
+          value={value.dateTo}
+          onChange={(e) => onChange({ ...value, dateTo: e.target.value })}
+        />
+      </label>
+      {(value.minFit > 0 || value.company || value.search || value.dateFrom || value.dateTo) && (
         <button
           type="button"
           className="filter-reset"
           onClick={() => {
             setSearch("");
-            onChange({ minFit: 0, company: "", search: "" });
+            onChange({ minFit: 0, company: "", search: "", dateFrom: "", dateTo: "" });
           }}
         >
           Reset
