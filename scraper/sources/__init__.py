@@ -1,8 +1,8 @@
 """Source adapters. Each module registers itself in REGISTRY via @register."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable, Iterable
+from dataclasses import dataclass, field
+from typing import Any, Callable, Iterable
 
 import httpx
 
@@ -17,6 +17,7 @@ class WatchlistEntry:
     match_titles: list[str] | None = None
     match_keywords: list[str] | None = None
     label: str | None = None
+    extras: dict[str, Any] = field(default_factory=dict)
 
     @property
     def display(self) -> str:
@@ -41,4 +42,4 @@ def register(name: str):
 
 
 # Trigger registration of adapters on package import.
-from scraper.sources import greenhouse, lever, ashby, hn_who_is_hiring  # noqa: F401,E402
+from scraper.sources import greenhouse, lever, ashby, hn_who_is_hiring, workday  # noqa: F401,E402

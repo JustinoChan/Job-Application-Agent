@@ -9,10 +9,18 @@
 # empty / etc. so you can prune dead entries before the next scheduled run.
 #
 # Note on FAANG / big tech:
-#   Most FAANG and big-tech companies (Meta, Apple, Amazon, Netflix, Google,
-#   Microsoft, Oracle, Salesforce) run on proprietary ATSes or Workday — they
-#   will NOT be on Greenhouse/Lever/Ashby. They're intentionally excluded here.
-#   A separate Workday adapter would be a step 2.5 if/when you want them.
+#   Companies on Workday (Salesforce, NVIDIA, Adobe, etc.) are now supported
+#   via the `workday` adapter — see the BIG TECH / WORKDAY section below.
+#
+#   These FAANG companies use proprietary career sites and need dedicated
+#   adapters (not yet built):
+#     - Meta:    GraphQL API at metacareers.com
+#     - Apple:   REST API at jobs.apple.com/api/role/search
+#     - Amazon:  JSON API at amazon.jobs/en/search.json
+#     - Google:  Custom API at careers.google.com
+#     - Netflix: REST API at jobs.netflix.com/api/search
+#   Apple, Amazon, and Netflix have the most accessible APIs if you want to
+#   add them later.
 #
 # Note on freshness:
 #   The scraper drops postings older than MAX_POSTING_AGE_DAYS (default 30) via
@@ -436,6 +444,44 @@ sources:
   - kind: greenhouse
     company_slug: nuro
     label: Nuro
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  #  BIG TECH / WORKDAY
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Workday is the dominant ATS for large enterprises. To find a company's
+  # Workday URL, Google: site:myworkdayjobs.com <company name>
+  #
+  # Config fields:
+  #   workday_host  — the *.myworkdayjobs.com hostname
+  #   workday_site  — board name in the URL path (usually "External")
+  #   company_slug  — tenant name (subdomain before .wdN)
+  #
+  # Verify with: python -m scraper.main --probe-watchlist
+  - kind: workday
+    company_slug: salesforce
+    label: Salesforce
+    workday_host: salesforce.wd12.myworkdayjobs.com
+    workday_site: External
+  - kind: workday
+    company_slug: nvidia
+    label: NVIDIA
+    workday_host: nvidia.wd5.myworkdayjobs.com
+    workday_site: NVIDIAExternalCareerSite
+  - kind: workday
+    company_slug: adobe
+    label: Adobe
+    workday_host: adobe.wd5.myworkdayjobs.com
+    workday_site: external_experienced
+  - kind: workday
+    company_slug: servicenow
+    label: ServiceNow
+    workday_host: servicenow.wd1.myworkdayjobs.com
+    workday_site: Careers
+  - kind: workday
+    company_slug: visa
+    label: Visa
+    workday_host: visa.wd12.myworkdayjobs.com
+    workday_site: Visa_Careers
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   #  HN WHO'S HIRING (monthly thread)

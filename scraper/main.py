@@ -53,18 +53,21 @@ def _load_watchlist(config: ScraperConfig) -> list[WatchlistEntry]:
     default_titles = defaults.get("match_titles") or None
     default_keywords = defaults.get("match_keywords") or None
 
+    _KNOWN_KEYS = {"kind", "company_slug", "match_titles", "match_keywords", "label"}
     sources = raw.get("sources") or []
     entries: list[WatchlistEntry] = []
     for idx, src in enumerate(sources):
         if not isinstance(src, dict) or "kind" not in src:
             log.warning("watchlist[%d] is missing 'kind'; skipping", idx)
             continue
+        extras = {k: v for k, v in src.items() if k not in _KNOWN_KEYS}
         entries.append(WatchlistEntry(
             kind=src["kind"],
             company_slug=src.get("company_slug"),
             match_titles=src.get("match_titles") or default_titles,
             match_keywords=src.get("match_keywords") or default_keywords,
             label=src.get("label"),
+            extras=extras,
         ))
     return entries
 
@@ -211,9 +214,13 @@ def probe_watchlist(config: ScraperConfig) -> int:
     ) as http:
         for entry in entries:
             if entry.kind == "hn_who_is_hiring":
-                # HN doesn't take a company_slug; sanity-probe the Algolia API.
                 url = "https://hn.algolia.com/api/v1/search_by_date?tags=story,author_whoishiring&hitsPerPage=1"
                 _print_probe(http, entry, url, kind="hn")
+                continue
+            if entry.kind == "workday":
+                ok = _probe_workday(http, entry)
+                if not ok:
+                    bad += 1
                 continue
             builder = _PROBE_URL_BUILDERS.get(entry.kind)
             if builder is None or not entry.company_slug:
@@ -254,6 +261,33 @@ def _print_probe(http: httpx.Client, entry: WatchlistEntry, url: str, *, kind: s
         n = len((data or {}).get("jobs", []))
     print(f"  OK    {entry.display:30}  {n} item(s)")
     return n > 0 or kind == "hn"
+
+
+def _probe_workday(http: httpx.Client, entry: WatchlistEntry) -> bool:
+    extras = entry.extras or {}
+    host = extras.get("workday_host")
+    site = extras.get("workday_site", "External")
+    tenant = entry.company_slug
+    if not host or not tenant:
+        print(f"  SKIP  {entry.display:30}  (missing workday_host or company_slug)")
+        return True
+    url = f"https://{host}/wday/cxs/{tenant}/{site}/jobs"
+    try:
+        r = http.post(url, json={"appliedFacets": {}, "limit": 1, "offset": 0, "searchText": ""})
+    except Exception as exc:
+        print(f"  FAIL  {entry.display:30}  {type(exc).__name__}: {exc}")
+        return False
+    if r.status_code != 200:
+        print(f"  FAIL  {entry.display:30}  HTTP {r.status_code}")
+        return False
+    try:
+        data = r.json()
+    except Exception:
+        print(f"  FAIL  {entry.display:30}  200 but non-JSON body")
+        return False
+    n = data.get("total", 0)
+    print(f"  OK    {entry.display:30}  {n} item(s)")
+    return n > 0
 
 
 def main(argv: list[str] | None = None) -> int:

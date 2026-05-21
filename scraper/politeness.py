@@ -69,13 +69,13 @@ class Politeness:
         cap = min(self.backoff_cap, self.backoff_base * (2 ** attempt))
         return random.uniform(0, cap)
 
-    def get(self, client: httpx.Client, url: str, **kwargs) -> httpx.Response:
-        """GET with inter-request delay, retries on transient failures."""
+    def _request(self, client: httpx.Client, method: str, url: str, **kwargs) -> httpx.Response:
+        """HTTP request with inter-request delay, retries on transient failures."""
         last_exc: Exception | None = None
         for attempt in range(self.max_retries + 1):
             self._wait_before_next()
             try:
-                resp = client.get(url, **kwargs)
+                resp = client.request(method, url, **kwargs)
                 self._stamp()
             except (httpx.TransportError, httpx.TimeoutException) as exc:
                 self._stamp()
@@ -101,4 +101,10 @@ class Politeness:
         # Should be unreachable: loop either returns or raises.
         if last_exc is not None:
             raise last_exc
-        raise RuntimeError(f"polite_get exhausted retries with no response: {url}")
+        raise RuntimeError(f"polite request exhausted retries with no response: {url}")
+
+    def get(self, client: httpx.Client, url: str, **kwargs) -> httpx.Response:
+        return self._request(client, "GET", url, **kwargs)
+
+    def post(self, client: httpx.Client, url: str, **kwargs) -> httpx.Response:
+        return self._request(client, "POST", url, **kwargs)
