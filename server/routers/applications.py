@@ -222,31 +222,7 @@ def discover_application(request: DiscoverRequest) -> DiscoverResponse:
     )
     tracker.add_entry(config.TRACKER_PATH, entry)
 
-    auto_tailored = False
     if notifications.should_notify(fit.overall_score):
-        try:
-            resume_cfg = dependencies.get_resume_config()
-            tailored = resume_tailor.tailor_resume(job, fit, profile, projects, resume_cfg, rules)
-            report = claim_auditor.audit_resume(tailored, projects, profile, rules)
-            if report.overall_verdict != AuditVerdict.FAIL:
-                md = resume_tailor.render_resume_markdown(tailored, profile)
-                with version_lock(job_id):
-                    version = config.next_resume_version(job_id)
-                    resume_path = resume_tailor.save_resume(md, job_id, version)
-                    resume_tailor.save_resume_metadata(tailored, job_id, version)
-                    claim_auditor.save_audit_report(report, job_id, version)
-                    tracker.update_status(
-                        config.TRACKER_PATH, job_id, TrackerStatus.PREPARED,
-                        resume_path=str(resume_path),
-                        audit_verdict=report.overall_verdict.value,
-                        latest_resume_version=version,
-                        fit_score=fit.overall_score,
-                    )
-                auto_tailored = True
-                _log.info("auto-tailored resume v%03d for %s", version, job_id)
-        except Exception:
-            _log.exception("auto-tailor failed for %s (non-blocking)", job_id)
-
         notifications.send_new_job_notification(
             job_id=job_id,
             company=request.company,
@@ -257,7 +233,7 @@ def discover_application(request: DiscoverRequest) -> DiscoverResponse:
             location=job.location,
             experience_level=job.experience_level,
             source=request.source,
-            auto_tailored=auto_tailored,
+            auto_tailored=False,
             dashboard_base_url=os.getenv("DASHBOARD_BASE_URL"),
         )
 
@@ -266,7 +242,7 @@ def discover_application(request: DiscoverRequest) -> DiscoverResponse:
         status="saved",
         fit_score=fit.overall_score,
         recommendation=fit.recommendation,
-        auto_tailored=auto_tailored,
+        auto_tailored=False,
     )
 
 
