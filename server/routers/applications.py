@@ -291,7 +291,7 @@ def confirm_application(request: ConfirmRequest) -> ConfirmResponse:
                 "audit_report": exc.result.report.model_dump(mode="json"),
             },
         ) from exc
-    return ConfirmResponse.model_validate(result)
+    return ConfirmResponse.model_validate(result.model_dump())
 
 
 @router.post("/bulk-archive", response_model=BulkArchiveResponse)
