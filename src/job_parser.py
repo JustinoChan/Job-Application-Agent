@@ -4,50 +4,164 @@ import re
 
 from src.models import ApplicationRules, JobPosting, JobRequirement, MasterProfile, Project
 
-# Broad list of tech skills so the parser can recognize requirements
-# outside the candidate's personal vocabulary. This ensures unknown
-# skills show up as "missing" rather than silently disappearing.
 COMMON_TECH_SKILLS: set[str] = {
-    # Languages
+    # ── Languages ───────────────────────────────────────────────────
     "Python", "Java", "JavaScript", "TypeScript", "C", "C++", "C#", "Go",
     "Rust", "Ruby", "PHP", "Swift", "Kotlin", "Scala", "R", "Perl",
     "Objective-C", "Dart", "Elixir", "Haskell", "Lua", "MATLAB",
-    # Frontend
+    "OCaml", "F#", "Clojure", "Groovy", "Julia", "Zig", "Erlang",
+    "Assembly", "Shell", "Bash", "PowerShell", "Solidity",
+    "WebAssembly", "WASM", "SQL", "PL/SQL", "T-SQL",
+
+    # ── Frontend ────────────────────────────────────────────────────
     "React", "Angular", "Vue", "Vue.js", "Svelte", "Next.js", "Nuxt",
-    "jQuery", "Ember", "Backbone", "Redux", "MobX", "Tailwind",
-    "Bootstrap", "Material UI", "Chakra UI",
-    # Backend
+    "jQuery", "Ember", "Redux", "MobX", "Tailwind", "Tailwind CSS",
+    "Bootstrap", "Material UI", "Chakra UI", "Storybook", "Figma",
+    "HTML", "CSS", "SCSS", "Sass", "LESS", "Webpack", "Vite",
+    "Rollup", "esbuild", "Babel", "SWC",
+
+    # ── Backend ─────────────────────────────────────────────────────
     "Django", "Flask", "FastAPI", "Spring", "Spring Boot", "Express",
-    "Node.js", "Rails", "Laravel", "ASP.NET", ".NET", "NestJS",
-    "Gin", "Echo", "Actix", "Phoenix",
-    # Databases
-    "SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis", "Elasticsearch",
+    "Node.js", "Rails", "Ruby on Rails", "Laravel", "ASP.NET", ".NET",
+    "NestJS", "Gin", "Echo", "Actix", "Phoenix", "Fiber",
+
+    # ── Databases ───────────────────────────────────────────────────
+    "MySQL", "PostgreSQL", "MongoDB", "Redis", "Elasticsearch",
     "DynamoDB", "Cassandra", "SQLite", "Oracle", "MariaDB", "Neo4j",
-    "CouchDB", "Firebase", "Supabase",
-    # Cloud / Infra
+    "CouchDB", "Firebase", "Supabase", "InfluxDB", "TimescaleDB",
+    "ScyllaDB", "CockroachDB", "TiDB", "Vitess", "Memcached",
+    "RocksDB", "LevelDB", "etcd", "ClickHouse", "Druid",
+    "Snowflake", "Redshift", "BigQuery", "Presto", "Trino",
+    "SingleStore", "Spanner",
+
+    # ── Cloud / Infra ───────────────────────────────────────────────
     "AWS", "GCP", "Azure", "Heroku", "Vercel", "Netlify",
     "EC2", "S3", "Lambda", "RDS", "CloudFront", "SQS", "SNS",
-    "BigQuery", "Cloud Functions",
-    # DevOps / Tools
+    "Cloud Functions", "Cloud Run", "Cloud Storage", "Cloud SQL",
+    "Pub/Sub", "Bigtable", "App Engine", "Compute Engine",
+    "IAM", "VPC", "CloudFormation", "CDK", "Kinesis", "EMR",
+    "Glue", "SageMaker", "Bedrock", "ECS", "EKS", "Fargate",
+    "Step Functions", "Azure DevOps", "Azure Functions",
+
+    # ── DevOps / CI/CD ──────────────────────────────────────────────
     "Docker", "Kubernetes", "Terraform", "Ansible", "Jenkins",
     "GitHub Actions", "GitLab CI", "CircleCI", "Travis CI",
-    "Nginx", "Apache", "Vagrant", "Helm", "ArgoCD",
-    # Data / ML
+    "Nginx", "Apache", "Helm", "ArgoCD", "Flux", "Spinnaker",
+    "Buildkite", "Concourse", "TeamCity", "Puppet", "Chef",
+    "Packer", "Vagrant", "containerd", "Podman", "Docker Compose",
+    "Nomad", "Mesos", "OpenShift",
+
+    # ── Networking ──────────────────────────────────────────────────
+    "TCP", "UDP", "TCP/IP", "IP", "HTTP", "HTTPS", "HTTP/2", "HTTP/3",
+    "DNS", "DHCP", "BGP", "OSPF", "MPLS", "VLAN", "VPN", "SDN", "NFV",
+    "NAT", "firewall", "load balancer", "load balancing", "proxy",
+    "reverse proxy", "CDN", "NIC", "network interface",
+    "socket programming", "routing", "switching",
+    "RDMA", "InfiniBand", "RoCE", "DPDK", "SR-IOV", "SPDK", "XDP",
+    "io_uring", "Ethernet", "WAN", "LAN",
+    "networking", "network engineering", "network security",
+    "host networking", "datacenter networking",
+
+    # ── Systems / Kernel / OS ───────────────────────────────────────
+    "Linux", "Unix", "Windows", "macOS", "kernel", "kernel systems",
+    "system call", "device driver", "file system", "memory management",
+    "process management", "thread", "threading", "multithreading",
+    "concurrency", "parallelism", "synchronization", "mutex", "semaphore",
+    "lock-free", "systems programming", "embedded systems",
+    "real-time systems", "RTOS", "eBPF", "BPF",
+    "operating systems", "OS internals",
+
+    # ── Distributed Systems / Architecture ──────────────────────────
+    "distributed systems", "microservices", "monolith",
+    "service mesh", "event-driven", "event-driven architecture",
+    "CQRS", "domain-driven design", "SOA", "API gateway",
+    "message queue", "pub/sub", "eventual consistency",
+    "consensus", "Raft", "Paxos", "replication",
+    "sharding", "partitioning", "consistent hashing",
+    "Istio", "Envoy", "Linkerd", "Consul", "ZooKeeper",
+    "service discovery", "circuit breaker", "rate limiting",
+    "idempotency", "saga pattern",
+
+    # ── Data / ML / AI ──────────────────────────────────────────────
     "PyTorch", "TensorFlow", "Keras", "Scikit-learn", "Pandas",
     "NumPy", "Spark", "Hadoop", "Airflow", "dbt", "Kafka",
-    "RabbitMQ", "Celery", "Flink",
-    # General
-    "Git", "Linux", "REST", "GraphQL", "gRPC", "WebSocket",
-    "CI/CD", "Agile", "Scrum", "Jira", "Confluence",
-    "data structure", "data structures", "algorithm", "algorithms", "object-oriented design", "OOP",
-    "SDLC", "software development lifecycle", "debugging", "troubleshooting",
-    "Figma", "Storybook",
-    # Testing
+    "RabbitMQ", "Celery", "Flink", "Apache Beam", "Dagster",
+    "Prefect", "Delta Lake", "Iceberg", "Parquet", "Avro",
+    "data pipeline", "ETL", "ELT", "data warehouse", "data lake",
+    "data modeling", "data engineering", "data science",
+    "machine learning", "deep learning", "neural network",
+    "LLM", "NLP", "natural language processing", "computer vision",
+    "reinforcement learning", "transformer", "fine-tuning",
+    "RAG", "retrieval augmented generation", "embeddings",
+    "vector database", "Pinecone", "Weaviate", "FAISS", "Chroma",
+    "LangChain", "Hugging Face", "ONNX", "TensorRT", "vLLM",
+    "model serving", "inference", "training",
+    "recommendation system", "feature engineering",
+    "A/B testing", "statistical analysis", "statistics",
+    "SciPy", "Matplotlib", "Seaborn", "Jupyter",
+
+    # ── Observability / Monitoring ──────────────────────────────────
+    "Prometheus", "Grafana", "Datadog", "Splunk", "ELK",
+    "Logstash", "Kibana", "Fluentd", "OpenTelemetry", "Jaeger",
+    "Zipkin", "New Relic", "PagerDuty", "tracing", "metrics",
+    "alerting", "SLO", "SLI", "SLA", "observability", "monitoring",
+    "logging", "APM",
+
+    # ── Security ────────────────────────────────────────────────────
+    "security", "cryptography", "TLS", "SSL", "OAuth", "OAuth2",
+    "SAML", "LDAP", "RBAC", "SSO", "JWT", "authentication",
+    "authorization", "encryption", "hashing", "PKI",
+    "WAF", "SIEM", "vulnerability", "penetration testing",
+    "OWASP", "secure coding", "zero trust",
+
+    # ── Protocols / Serialization ───────────────────────────────────
+    "REST", "GraphQL", "gRPC", "Protobuf", "Protocol Buffers",
+    "Thrift", "JSON", "XML", "YAML", "WebSocket", "SSE", "WebRTC",
+    "MQTT", "AMQP", "NATS",
+
+    # ── Performance / Reliability ───────────────────────────────────
+    "performance", "optimization", "benchmarking", "profiling",
+    "latency", "throughput", "caching", "scalability",
+    "high availability", "fault tolerance", "disaster recovery",
+    "chaos engineering", "load testing", "stress testing",
+    "capacity planning",
+
+    # ── Testing ─────────────────────────────────────────────────────
     "Jest", "Pytest", "Cypress", "Selenium", "Playwright",
-    "JUnit", "Mocha", "Vitest",
-    # Mobile
+    "JUnit", "Mocha", "Vitest", "RSpec", "unittest",
+    "integration testing", "unit testing", "end-to-end testing",
+    "test automation", "TDD", "BDD",
+
+    # ── Mobile ──────────────────────────────────────────────────────
     "React Native", "Flutter", "SwiftUI", "Jetpack Compose",
-    "Xamarin", "Ionic",
+    "Xamarin", "Ionic", "iOS", "Android",
+
+    # ── General / Process ───────────────────────────────────────────
+    "Git", "CI/CD", "Agile", "Scrum", "Kanban", "Jira", "Confluence",
+    "data structure", "data structures", "algorithm", "algorithms",
+    "object-oriented design", "OOP", "functional programming",
+    "design patterns", "SOLID", "clean architecture",
+    "SDLC", "software development lifecycle",
+    "debugging", "troubleshooting", "code review",
+    "system design", "API design", "technical writing",
+    "pair programming", "mentoring",
+
+    # ── Package / Build ─────────────────────────────────────────────
+    "npm", "yarn", "pnpm", "pip", "poetry", "cargo",
+    "Maven", "Gradle", "Bazel", "CMake", "Make",
+
+    # ── Storage / File Systems ──────────────────────────────────────
+    "NFS", "iSCSI", "SAN", "NAS", "block storage", "object storage",
+    "Ceph", "MinIO", "HDFS", "ZFS", "ext4",
+
+    # ── Messaging / Streaming ───────────────────────────────────────
+    "Kafka", "Pulsar", "Amazon SQS", "Google Pub/Sub", "NATS",
+    "ActiveMQ", "ZeroMQ", "Redis Streams", "Kinesis",
+    "event streaming", "stream processing",
+
+    # ── Virtualization ──────────────────────────────────────────────
+    "VMware", "KVM", "QEMU", "Xen", "hypervisor", "virtualization",
+    "bare metal",
 }
 
 
@@ -150,14 +264,22 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         r"(?:core\s+|key\s+|main\s+)?requirements?"
         r"|(?:basic|required|minimum|core|key)\s+qualifications?"
         r"|qualifications?"
-        r"|what\s+you.+need"
+        r"|what\s+you.+(?:need|bring)"
         r"|must[\s\-]?have"
         r"|who\s+you\s+are"
+        r"|about\s+you"
         r"|what\s+we.+looking"
-        r"|we['’]?re\s+looking\s+for"
+        r"|we[‘’]?re\s+looking\s+for"
         r"|looking\s+for"
         r"|skills?\s+(?:and|&)\s+experience"
-        r"|your\s+(?:experience|skills)"
+        r"|your\s+(?:experience|skills|background)"
+        r"|you\s+(?:should|will|might)\s+have"
+        r"|you\s+have"
+        r"|the\s+ideal\s+candidate"
+        r"|ideal\s+candidate"
+        r"|we[‘’’]?d\s+love.*(?:if\s+you|hear\s+from)"
+        r"|experience\s+(?:and|&)\s+skills"
+        r"|technical\s+(?:requirements?|qualifications?|skills)"
         r")",
         re.IGNORECASE,
     )),
