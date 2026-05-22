@@ -26,7 +26,8 @@ export default function Dashboard() {
   const [applications, setApplications] = useState<TrackerEntry[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [viewTab, setViewTab] = useState<ViewTab>("discoveries");
+  // Default to Applied Tracker tab instead of Discoveries
+  const [viewTab, setViewTab] = useState<ViewTab>("tracker");
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [searchMatches, setSearchMatches] = useState<Set<string> | null>(null);
   const [searchSnippets, setSearchSnippets] = useState<Record<string, string>>({});
