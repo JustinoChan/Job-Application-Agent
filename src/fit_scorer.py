@@ -220,11 +220,81 @@ def _is_admin_requirement(text: str) -> bool:
         for phrase in [
             "must be 18",
             "18 years of age",
+            "eighteen years of age",
             "legally authorized",
+            "legally permitted",
             "work authorization",
+            "authorized to work",
+            "authorization to work",
             "sponsorship",
+            "u.s. citizenship",
+            "us citizenship",
+            "united states citizenship",
+            "citizenship is required",
+            "drug free workplace",
+            "drug-free workplace",
+            "drug test",
+            "equal opportunity",
+            "equal employment",
+            "affirmative action",
+            "no relocation",
+            "relocation assistance",
+            "travel required",
+            "travel: no",
+            "travel: yes",
+            "no travel",
+            "security clearance",
+            "export control",
+            "must be a u.s. person",
+            "u.s. person",
+            "visa sponsorship",
+            "immigration",
         ]
-    )
+    ) or _is_competency_buzzword(lower)
+
+
+_COMPETENCY_BUZZWORDS: set[str] = {
+    "self-development",
+    "collaborates",
+    "cultivates innovation",
+    "situational adaptability",
+    "communicates effectively",
+    "drives results",
+    "interpersonal savvy",
+    "global perspective",
+    "manages ambiguity",
+    "nimble learning",
+    "courage",
+    "instills trust",
+    "ensures accountability",
+    "action oriented",
+    "action-oriented",
+    "resourcefulness",
+    "values differences",
+    "customer focus",
+    "being resilient",
+    "strategic mindset",
+    "plans and aligns",
+    "optimizes work processes",
+    "decision quality",
+    "balances stakeholders",
+    "organizational savvy",
+    "manages complexity",
+    "business insight",
+    "financial acumen",
+    "tech savvy",
+    "directs work",
+    "develops talent",
+    "builds effective teams",
+    "persuades",
+    "builds networks",
+    "attracts top talent",
+}
+
+
+def _is_competency_buzzword(lower: str) -> bool:
+    stripped = lower.strip().rstrip(".")
+    return stripped in _COMPETENCY_BUZZWORDS
 
 
 def _education_match(text: str) -> str | None:

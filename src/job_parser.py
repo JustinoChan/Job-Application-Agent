@@ -35,7 +35,7 @@ COMMON_TECH_SKILLS: set[str] = {
     "SingleStore", "Spanner",
 
     # ── Cloud / Infra ───────────────────────────────────────────────
-    "AWS", "GCP", "Azure", "Heroku", "Vercel", "Netlify",
+    "AWS", "GCP", "Azure", "Heroku", "Vercel", "Netlify", "cloud computing",
     "EC2", "S3", "Lambda", "RDS", "CloudFront", "SQS", "SNS",
     "Cloud Functions", "Cloud Run", "Cloud Storage", "Cloud SQL",
     "Pub/Sub", "Bigtable", "App Engine", "Compute Engine",
@@ -72,7 +72,7 @@ COMMON_TECH_SKILLS: set[str] = {
     "operating systems", "OS internals",
 
     # ── Distributed Systems / Architecture ──────────────────────────
-    "distributed systems", "microservices", "monolith",
+    "distributed systems", "microservices", "microservice", "monolith",
     "service mesh", "event-driven", "event-driven architecture",
     "CQRS", "domain-driven design", "SOA", "API gateway",
     "message queue", "pub/sub", "eventual consistency",
@@ -296,7 +296,7 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         re.IGNORECASE,
     )),
     ("benefits", re.compile(
-        r"^(?:benefits?|perks|what\s+we\s+offer|compensation)",
+        r"^(?:benefits?|perks|what\s+we\s+offer|compensation|competenc(?:y|ies))",
         re.IGNORECASE,
     )),
 ]
@@ -305,6 +305,11 @@ _SECTION_STOP_PATTERN = re.compile(
     r"^(?:amazon\s+is\s+an\s+equal\s+opportunity|equal\s+opportunity|our\s+inclusive\s+culture|"
     r"the\s+base\s+salary\s+range|job\s+details|share\s+this\s+job|join\s+us\s+on|"
     r"download\s+our\s+app|find\s+careers|legal\s+disclosures|privacy\s+and\s+data|"
+    r"drug\s+free\s+workplace|equal\s+employment|affirmative\s+action|"
+    r"export\s+control|visa\s+sponsorship|security\s+clearance|"
+    r"the\s+salary\s+range|the\s+annual\s+salary|the\s+hourly\s+rate|pay\s+range|"
+    r"the\s+typical\s+pay|salary\s+range\s+for\s+this|"
+    r"we\s+are\s+an\s+equal|we\s+are\s+committed\s+to|"
     r"©|\(c\))",
     re.IGNORECASE,
 )

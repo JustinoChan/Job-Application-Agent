@@ -58,6 +58,9 @@ keyword_synonyms:
     - Sass
   MongoDB:
     - Mongo
+    - NoSQL
+    - noSQL
+    - non-relational
   Firebase:
     - Google Firebase
     - Firebase Authentication
@@ -68,6 +71,8 @@ keyword_synonyms:
   Git:
     - GitHub
     - Version Control
+    - source code version control
+    - source control
   "C++":
     - CPP
   "Node.js":
@@ -127,3 +132,24 @@ keyword_synonyms:
     - Scrum
     - Kanban
     - sprint
+  "microservices":
+    - microservice
+    - microservice-based
+    - microservice architecture
+    - microservices architecture
+  "cloud computing":
+    - cloud technologies
+    - cloud platforms
+    - cloud-native
+    - cloud infrastructure
+    - cloud services
+    - cloud environment
+    - cloud environments
+  "FastAPI":
+    - Fast API
+  "object-oriented design":
+    - object-oriented programming
+    - object oriented programming
+    - OOP
+    - object-oriented
+    - object oriented
