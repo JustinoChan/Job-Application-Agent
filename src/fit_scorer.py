@@ -122,7 +122,8 @@ def _score_skills(
             continue
 
         if not req.keywords:
-            # Requirement with no recognized keywords still counts as unmatched
+            if _is_soft_requirement(req.text):
+                continue
             label = req.text[:60] + ("..." if len(req.text) > 60 else "")
             if label not in seen:
                 seen.add(label)
@@ -249,8 +250,20 @@ def _is_admin_requirement(text: str) -> bool:
             "u.s. person",
             "visa sponsorship",
             "immigration",
+            "background check",
+            "physical demands",
+            "lift up to",
+            "work environment",
+            "reasonable accommodation",
+            "pursuant to",
+            "in accordance with",
+            "comply with",
+            "employment eligibility",
+            "i-9",
+            "e-verify",
+            "itar",
         ]
-    ) or _is_competency_buzzword(lower)
+    ) or _is_competency_buzzword(lower) or _is_yoe_only_requirement(lower)
 
 
 _COMPETENCY_BUZZWORDS: set[str] = {
@@ -297,6 +310,61 @@ def _is_competency_buzzword(lower: str) -> bool:
     return stripped in _COMPETENCY_BUZZWORDS
 
 
+_YOE_PATTERN = re.compile(
+    r"\b(\d+)\+?\s*(?:to\s*\d+\s*)?(?:years?|yrs?)\s+(?:of\s+)?(?:experience|exp|professional|relevant|related|work|industry)",
+    re.IGNORECASE,
+)
+
+
+def _is_yoe_only_requirement(lower: str) -> bool:
+    """Filter requirements that are ONLY about years of experience with no tech keywords."""
+    if not _YOE_PATTERN.search(lower):
+        return False
+    tech_words = {"python", "java", "react", "javascript", "typescript", "sql", "c++",
+                  "go", "rust", "ruby", "swift", "kotlin", "scala", "node", "django",
+                  "flask", "spring", "angular", "vue", "docker", "kubernetes", "aws",
+                  "gcp", "azure", "pytorch", "tensorflow", "spark", "kafka",
+                  "css", "html", "fastapi", "numpy", "redis", "mongodb", "firebase"}
+    tech_phrases = {"machine learning", "deep learning", "data science", "cloud computing",
+                    "software engineering", "web development", "data engineering",
+                    "front end", "front-end", "back end", "back-end", "full stack",
+                    "full-stack", "natural language processing", "computer vision"}
+    words = set(re.findall(r"[a-z+#]+", lower))
+    if words & tech_words:
+        return False
+    for phrase in tech_phrases:
+        if phrase in lower:
+            return False
+    return True
+
+
+_SOFT_REQUIREMENT_PATTERNS = re.compile(
+    r"(?i)(?:"
+    r"ability\s+to\s+(?:work|collaborate|communicate|learn|adapt|manage|multi-?task|prioritize)"
+    r"|excellent\s+(?:communication|interpersonal|organizational|written|verbal)"
+    r"|strong\s+(?:communication|interpersonal|organizational|written|verbal|analytical)"
+    r"|(?:team|customer)\s+(?:oriented|focused|player)"
+    r"|work\s+(?:independently|in\s+a\s+(?:team|fast[\s-]paced|dynamic))"
+    r"|self[\s-]?(?:starter|motivated|directed|driven)"
+    r"|passion\s+for"
+    r"|desire\s+to\s+learn"
+    r"|attention\s+to\s+detail"
+    r"|(?:strong|excellent|good)\s+(?:work\s+ethic|time\s+management)"
+    r"|must\s+be\s+able\s+to\s+(?:sit|stand|lift|walk)"
+    r"|willingness\s+to"
+    r"|comfortable\s+(?:with|working)"
+    r"|proven\s+ability\s+to"
+    r"|demonstrated\s+ability\s+to"
+    r"|ability\s+to\s+(?:thrive|succeed|excel)"
+    r"|(?:flexible|adaptable)\s+(?:schedule|work|approach)"
+    r")"
+)
+
+
+def _is_soft_requirement(text: str) -> bool:
+    return bool(_SOFT_REQUIREMENT_PATTERNS.search(text))
+
+
 def _education_match(text: str) -> str | None:
     lower = text.lower()
     if "bachelor" in lower or "degree" in lower:
@@ -329,14 +397,17 @@ def _score_projects(
         matched_kw_display = [k for k in job.extracted_keywords if _normalize_skill(k, synonym_map) in keyword_overlap]
         matched_theme_display = [t for t in proj.themes if t.lower() in theme_overlap]
 
-        # Keyword overlap drives the score; theme overlap is a small bonus capped
-        # at +0.2 so projects with many themes don't get penalized by the
-        # denominator (the prior formula divided by len(proj_themes), which made
-        # a richly-described project score lower than a sparse one — wrong).
-        total_possible = max(len(job_keywords_norm), 1)
-        keyword_score = len(keyword_overlap) / total_possible
-        theme_bonus = min(0.2, len(theme_overlap) * 0.05)
-        relevance = min(1.0, keyword_score + theme_bonus)
+        overlap_count = len(keyword_overlap) + len(theme_overlap)
+        if overlap_count >= 8:
+            relevance = 1.0
+        elif overlap_count >= 5:
+            relevance = 0.75 + (overlap_count - 5) * 0.083
+        elif overlap_count >= 3:
+            relevance = 0.5 + (overlap_count - 3) * 0.125
+        elif overlap_count >= 1:
+            relevance = 0.15 + (overlap_count - 1) * 0.175
+        else:
+            relevance = 0.0
 
         scores.append(ProjectScore(
             project_id=proj.id,

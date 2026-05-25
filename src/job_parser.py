@@ -261,15 +261,15 @@ def _extract_company_and_title(text: str) -> tuple[str, str]:
 _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("requirements", re.compile(
         r"^(?:"
-        r"(?:core\s+|key\s+|main\s+)?requirements?"
-        r"|(?:basic|required|minimum|core|key)\s+qualifications?"
+        r"(?:core\s+|key\s+|main\s+|essential\s+)?requirements?"
+        r"|(?:basic|required|minimum|core|key|essential)\s+qualifications?"
         r"|qualifications?"
         r"|what\s+you.+(?:need|bring)"
         r"|must[\s\-]?have"
         r"|who\s+you\s+are"
         r"|about\s+you"
         r"|what\s+we.+looking"
-        r"|we[‘’]?re\s+looking\s+for"
+        r"|we[‘’’]?re\s+looking\s+for"
         r"|looking\s+for"
         r"|skills?\s+(?:and|&)\s+experience"
         r"|your\s+(?:experience|skills|background)"
@@ -280,23 +280,53 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         r"|we[‘’’]?d\s+love.*(?:if\s+you|hear\s+from)"
         r"|experience\s+(?:and|&)\s+skills"
         r"|technical\s+(?:requirements?|qualifications?|skills)"
+        r"|what\s+you\s+(?:need|bring|should)"
+        r"|knowledge[\s,]+skills"
+        r"|education\s+(?:and|&)\s+experience"
+        r"|minimum\s+(?:education|experience)"
         r")",
         re.IGNORECASE,
     )),
     ("responsibilities", re.compile(
-        r"^(?:(?:key\s+job\s+)?responsibilit|what\s+you.+do|the\s+role|about\s+the\s+role|in\s+this\s+role|you\s+will|your\s+impact|day[\s\-]to[\s\-]day)",
+        r"^(?:"
+        r"(?:key\s+job\s+)?responsibilit"
+        r"|what\s+you.+do"
+        r"|the\s+role"
+        r"|about\s+the\s+role"
+        r"|in\s+this\s+role"
+        r"|you\s+will"
+        r"|your\s+impact"
+        r"|day[\s\-]to[\s\-]day"
+        r"|what\s+you[‘’’]?ll\s+(?:do|work\s+on|build)"
+        r"|key\s+(?:duties|activities)"
+        r"|essential\s+(?:duties|functions)"
+        r"|job\s+(?:duties|functions|summary)"
+        r"|role\s+(?:overview|description|summary)"
+        r")",
         re.IGNORECASE,
     )),
     ("nice_to_have", re.compile(
-        r"^(?:nice[\s\-]?to[\s\-]?have|preferred(?:\s+qualifications?)?|bonus|plus|additional|it.s\s+a\s+plus)",
+        r"^(?:"
+        r"nice[\s\-]?to[\s\-]?have"
+        r"|preferred(?:\s+qualifications?)?"
+        r"|bonus"
+        r"|plus"
+        r"|additional(?:\s+qualifications?)?"
+        r"|it[‘’’]?s\s+a\s+plus"
+        r"|desired\s+(?:qualifications?|skills?|experience)"
+        r"|(?:nice|good)\s+to\s+have"
+        r"|you[‘’’]?ll\s+stand\s+out"
+        r"|bonus\s+(?:points|qualifications?)"
+        r"|even\s+better\s+if"
+        r")",
         re.IGNORECASE,
     )),
     ("about", re.compile(
-        r"^(?:description|about\s+(?:us|the\s+company|the\s+role)|who\s+we\s+are|our\s+(?:mission|team|story|company))",
+        r"^(?:description|about\s+(?:us|the\s+company|the\s+role|the\s+team)|who\s+we\s+are|our\s+(?:mission|team|story|company)|company\s+(?:overview|description))",
         re.IGNORECASE,
     )),
     ("benefits", re.compile(
-        r"^(?:benefits?|perks|what\s+we\s+offer|compensation|competenc(?:y|ies))",
+        r"^(?:benefits?|perks|what\s+we\s+offer|compensation|competenc(?:y|ies)|total\s+rewards?|why\s+(?:join|work))",
         re.IGNORECASE,
     )),
 ]
@@ -310,6 +340,13 @@ _SECTION_STOP_PATTERN = re.compile(
     r"the\s+salary\s+range|the\s+annual\s+salary|the\s+hourly\s+rate|pay\s+range|"
     r"the\s+typical\s+pay|salary\s+range\s+for\s+this|"
     r"we\s+are\s+an\s+equal|we\s+are\s+committed\s+to|"
+    r"this\s+(?:position|role)\s+(?:is\s+not|does\s+not)\s+(?:eligible|qualify)|"
+    r"accommodation\s+request|reasonable\s+accommodation|"
+    r"all\s+qualified\s+applicants|"
+    r"pursuant\s+to|in\s+compliance\s+with|"
+    r"eeo\s+(?:statement|policy|employer)|"
+    r"applicants\s+(?:must|are\s+required)|"
+    r"disclaimer|"
     r"©|\(c\))",
     re.IGNORECASE,
 )
@@ -467,12 +504,19 @@ def _detect_experience_level(text: str, title: str) -> str | None:
 
 def _extract_location(text: str) -> str | None:
     loc = re.search(
-        r"(?:location|based\s+in|located\s+in)\s*:?\s*(.+?)(?:\n|$)",
+        r"(?:location|based\s+in|located\s+in|office\s+location|work\s+location)\s*:?\s*(.+?)(?:\n|$)",
         text,
         re.IGNORECASE,
     )
     if loc:
         return loc.group(1).strip()
+
+    city_state = re.search(
+        r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?,\s*[A-Z]{2})\b",
+        text,
+    )
+    if city_state:
+        return city_state.group(1)
 
     remote = re.search(r"\b(remote|hybrid|on[\-\s]?site)\b", text, re.IGNORECASE)
     if remote:

@@ -58,3 +58,6 @@ local-backend-runbook.md
 # Per-VM scraper config — example is committed, real one is user-curated
 scraper/watchlist.yaml
 scraper/.env
+
+outputs
+data

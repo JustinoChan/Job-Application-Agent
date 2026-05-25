@@ -11,8 +11,15 @@ import httpx
 from bs4 import BeautifulSoup
 
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024
-REQUEST_TIMEOUT_SECONDS = 15.0
+REQUEST_TIMEOUT_SECONDS = 20.0
 MAX_REDIRECTS = 5
+MAX_RETRIES = 3
+
+_BROWSER_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/125.0.0.0 Safari/537.36"
+)
 
 
 class UnsafeUrlError(ValueError):
@@ -79,10 +86,30 @@ def _is_blocked_ip(ip: ipaddress._BaseAddress) -> bool:
 
 
 async def fetch_page(url: str) -> ScrapedJob:
+    import asyncio
+
+    last_error: Exception | None = None
+    for attempt in range(MAX_RETRIES):
+        if attempt > 0:
+            await asyncio.sleep(2 ** attempt)
+        try:
+            return await _fetch_page_once(url)
+        except (httpx.TimeoutException, httpx.NetworkError) as exc:
+            last_error = exc
+            continue
+    raise ValueError(f"Failed after {MAX_RETRIES} retries: {last_error}")
+
+
+async def _fetch_page_once(url: str) -> ScrapedJob:
     current_url = url
     async with httpx.AsyncClient(
         timeout=REQUEST_TIMEOUT_SECONDS,
-        headers={"User-Agent": "JobApplicationAgent/0.3"},
+        headers={
+            "User-Agent": _BROWSER_UA,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+        },
         follow_redirects=False,
     ) as client:
         for _ in range(MAX_REDIRECTS + 1):
@@ -106,9 +133,33 @@ async def fetch_page(url: str) -> ScrapedJob:
                 raise ValueError("Response exceeded 5 MB limit.")
 
             text = _html_to_text(content.decode(response.encoding or "utf-8", errors="replace"))
+
+            if _is_bot_blocked(text):
+                raise ValueError(
+                    "Page appears to be bot-blocked (anti-bot protection detected). "
+                    "Try pasting the job description manually instead."
+                )
+
             return ScrapedJob(raw_text=text, final_url=str(response.url))
 
     raise ValueError("Too many redirects while fetching job posting.")
+
+
+def _is_bot_blocked(text: str) -> bool:
+    lower = text.lower()
+    indicators = [
+        "please verify you are a human",
+        "access denied",
+        "enable javascript",
+        "please enable cookies",
+        "captcha",
+        "cloudflare",
+        "checking your browser",
+        "just a moment",
+        "ray id",
+    ]
+    matches = sum(1 for i in indicators if i in lower)
+    return matches >= 2 or (len(text) < 500 and matches >= 1)
 
 
 async def scrape_job_url(url: str, provider: str | None = None) -> str:

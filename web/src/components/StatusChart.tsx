@@ -1,15 +1,15 @@
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 const colors: Record<string, string> = {
-  found: "#6b7280",
-  prepared: "#c2410c",
+  found: "#94a3b8",
+  prepared: "#4f46e5",
   reviewed: "#2563eb",
-  submitted: "#16a34a",
+  submitted: "#059669",
   interview: "#0d9488",
   assessment: "#7c3aed",
   offer: "#059669",
   rejected: "#dc2626",
-  ghosted: "#9ca3af"
+  ghosted: "#cbd5e1"
 };
 
 export default function StatusChart({ counts }: { counts: Record<string, number> }) {

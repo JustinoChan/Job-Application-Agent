@@ -42,6 +42,10 @@ keyword_synonyms:
     - Django REST Framework
     - Django REST API
     - DRF
+    - backend
+    - back-end
+    - back end
+    - server-side
   REST API:
     - RESTful
     - RESTful API
@@ -153,3 +157,7 @@ keyword_synonyms:
     - OOP
     - object-oriented
     - object oriented
+  "Linux":
+    - Unix
+    - linux systems
+    - unix systems
