@@ -200,6 +200,12 @@ def parse_job_description(
                 all_keywords.append(kw)
                 seen.add(kw)
 
+    for resp_line in responsibilities:
+        for kw in _extract_keywords_from_line(resp_line, vocab, synonyms):
+            if kw not in seen:
+                all_keywords.append(kw)
+                seen.add(kw)
+
     experience_level = _detect_experience_level(raw_text, title)
 
     return JobPosting(
@@ -284,6 +290,14 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         r"|knowledge[\s,]+skills"
         r"|education\s+(?:and|&)\s+experience"
         r"|minimum\s+(?:education|experience)"
+        r"|skills?\s+you.+(?:need|bring)"
+        r"|position\s+requires"
+        r"|what\s+we\s+look\s+for"
+        r"|what\s+we\s+(?:need|expect|want)"
+        r"|what\s+(?:we[‘’’]?re|are\s+we)\s+looking\s+for"
+        r"|you\s+(?:may|might)\s+be\s+a\s+(?:good\s+)?(?:fit|match)"
+        r"|candidates?\s+(?:must|should)\s+(?:be|have)"
+        r"|(?:unique\s+)?candidate\s+(?:criteria|profile)"
         r")",
         re.IGNORECASE,
     )),
@@ -297,11 +311,12 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         r"|you\s+will"
         r"|your\s+impact"
         r"|day[\s\-]to[\s\-]day"
-        r"|what\s+you[‘’’]?ll\s+(?:do|work\s+on|build)"
+        r"|what\s+you[‘’’]?ll\s+(?:do|work\s+on|build|achieve)"
         r"|key\s+(?:duties|activities)"
         r"|essential\s+(?:duties|functions)"
         r"|job\s+(?:duties|functions|summary)"
         r"|role\s+(?:overview|description|summary)"
+        r"|^duties"
         r")",
         re.IGNORECASE,
     )),
@@ -318,11 +333,17 @@ _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         r"|you[‘’’]?ll\s+stand\s+out"
         r"|bonus\s+(?:points|qualifications?)"
         r"|even\s+better\s+if"
+        r"|while\s+not\s+required"
+        r"|(?:an?\s+)?added\s+(?:plus|bonus)"
+        r"|not\s+required\s+but"
+        r"|strong\s+candidates?\s+(?:may|might|will|should)"
         r")",
         re.IGNORECASE,
     )),
     ("about", re.compile(
-        r"^(?:description|about\s+(?:us|the\s+company|the\s+role|the\s+team)|who\s+we\s+are|our\s+(?:mission|team|story|company)|company\s+(?:overview|description))",
+        r"^(?:description|about\s+(?:us|the\s+company|the\s+role|the\s+team)|about\s+(?!you\b)\S+"
+        r"|who\s+we\s+are|our\s+(?:mission|team|story|company)|company\s+(?:overview|description)"
+        r"|let[''']?s\s+\S+\s+together)",
         re.IGNORECASE,
     )),
     ("benefits", re.compile(
@@ -352,6 +373,10 @@ _SECTION_STOP_PATTERN = re.compile(
 )
 
 
+def _looks_like_header(line: str) -> bool:
+    return len(line) < 120 or line.rstrip().endswith(":")
+
+
 def _split_sections(text: str) -> dict[str, str]:
     lines = text.splitlines()
     sections: dict[str, list[str]] = {}
@@ -366,10 +391,11 @@ def _split_sections(text: str) -> dict[str, str]:
             continue
 
         matched_section = None
-        for name, pattern in _SECTION_PATTERNS:
-            if pattern.search(stripped):
-                matched_section = name
-                break
+        if _looks_like_header(stripped):
+            for name, pattern in _SECTION_PATTERNS:
+                if pattern.search(stripped):
+                    matched_section = name
+                    break
 
         if matched_section:
             current_section = matched_section

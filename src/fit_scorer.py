@@ -110,15 +110,15 @@ def _score_skills(
     seen: set[str] = set()
 
     for req in requirements:
-        if _is_admin_requirement(req.text):
-            continue
-
         education_source = _education_match(req.text)
         if education_source:
             label = "Bachelor's degree"
             if label not in seen:
                 seen.add(label)
                 matches.append(SkillMatch(skill=label, matched=True, source=education_source))
+            continue
+
+        if _is_admin_requirement(req.text):
             continue
 
         if not req.keywords:

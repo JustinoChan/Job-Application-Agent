@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from src import claim_auditor, config, job_parser, pipeline as pipeline_mod, tracker
+from src import claim_auditor, config, fit_scorer, job_parser, pipeline as pipeline_mod, tracker
 from src.models import AuditVerdict, TailoredResume, TrackerEntry, TrackerStatus
 
 app = typer.Typer(
@@ -451,6 +451,63 @@ def pipeline(
     console.print(f"Audit file:  {paths['audit']}")
     console.print("\n[bold green]Ready for review.[/bold green]")
     console.print(f"Run [bold]python -m src.main render-pdf {confirm.job_id}[/bold] to generate PDF.")
+
+
+@app.command()
+def rescore(
+    status_filter: Optional[str] = typer.Option(None, "--status", "-s", help="Only rescore jobs with this status (e.g. submitted)"),
+    job_id_filter: Optional[str] = typer.Option(None, "--job", "-j", help="Rescore a single job ID"),
+) -> None:
+    """Re-parse and re-score all tracked jobs that have raw files."""
+    profile = config.load_profile()
+    projects = config.load_projects()
+    rules = config.load_rules()
+
+    filter_enum = None
+    if status_filter:
+        try:
+            filter_enum = TrackerStatus(status_filter)
+        except ValueError:
+            valid = ", ".join(s.value for s in TrackerStatus)
+            console.print(f"[red]Invalid status '{status_filter}'. Valid: {valid}[/red]")
+            raise typer.Exit(1)
+
+    entries = tracker.list_entries(config.TRACKER_PATH, filter_enum)
+    if job_id_filter:
+        entries = [e for e in entries if e.job_id == job_id_filter]
+
+    updated = 0
+    skipped = 0
+    for entry in entries:
+        raw_path = config.JOBS_RAW_DIR / f"{entry.job_id}.txt"
+        if not raw_path.exists():
+            skipped += 1
+            continue
+
+        raw_text = raw_path.read_text(encoding="utf-8")
+        job = job_parser.parse_job_description(
+            raw_text, profile, projects, rules,
+            company_override=entry.company,
+            title_override=entry.role,
+        )
+        fit = fit_scorer.score_fit(job, profile, projects, rules)
+
+        old_score = entry.fit_score or 0.0
+        new_score = fit.overall_score
+        if abs(old_score - new_score) > 0.001:
+            tracker.update_status(
+                config.TRACKER_PATH, entry.job_id, entry.status,
+                fit_score=new_score,
+            )
+            delta = new_score - old_score
+            sign = "+" if delta > 0 else ""
+            console.print(
+                f"  {entry.job_id[:60]:<60} "
+                f"{old_score:.0%} -> {new_score:.0%} ({sign}{delta:.0%})"
+            )
+            updated += 1
+
+    console.print(f"\n[green]Updated {updated} scores[/green], {skipped} skipped (no raw file).")
 
 
 def _print_fit_score(fit, job) -> None:

@@ -117,6 +117,35 @@ def _extract_salary_mentions(text: str) -> list[str]:
     return out
 
 
+@router.post("/rescore")
+def rescore_all():
+    """Re-parse and re-score every tracked job that has a raw file."""
+    profile = dependencies.get_profile()
+    projects = list(dependencies.get_projects())
+    rules = dependencies.get_rules()
+
+    entries = tracker.list_entries(config.TRACKER_PATH)
+    updated = 0
+    for entry in entries:
+        raw_path = config.JOBS_RAW_DIR / f"{entry.job_id}.txt"
+        if not raw_path.exists():
+            continue
+        raw_text = raw_path.read_text(encoding="utf-8")
+        job = job_parser.parse_job_description(
+            raw_text, profile, projects, rules,
+            company_override=entry.company, title_override=entry.role,
+        )
+        fit = fit_scorer.score_fit(job, profile, projects, rules)
+        old_score = entry.fit_score or 0.0
+        if abs(old_score - fit.overall_score) > 0.001:
+            tracker.update_status(
+                config.TRACKER_PATH, entry.job_id, entry.status,
+                fit_score=fit.overall_score,
+            )
+            updated += 1
+    return {"updated": updated, "total": len(entries)}
+
+
 @router.get("/", response_model=list[TrackerEntryResponse])
 def list_applications(
     status: TrackerStatus | None = Query(default=None),
