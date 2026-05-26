@@ -117,6 +117,15 @@ def _extract_salary_mentions(text: str) -> list[str]:
     return out
 
 
+@router.post("/archive-stale")
+def archive_stale(max_age_days: int = Query(default=7)):
+    """Archive found-status discoveries older than max_age_days."""
+    archived = tracker.archive_stale_discoveries(
+        config.TRACKER_PATH, max_age_days=max_age_days,
+    )
+    return {"archived": archived}
+
+
 @router.post("/rescore")
 def rescore_all():
     """Re-parse and re-score every tracked job that has a raw file."""

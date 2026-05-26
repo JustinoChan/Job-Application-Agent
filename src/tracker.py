@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import re
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from rich.console import Console
@@ -288,6 +288,77 @@ def bulk_update_status(
                 writer.writeheader()
                 writer.writerows(rows)
         return updated
+
+
+_PROTECTED_STATUSES = {
+    TrackerStatus.PREPARED,
+    TrackerStatus.REVIEWED,
+    TrackerStatus.SUBMITTED,
+    TrackerStatus.INTERVIEW,
+    TrackerStatus.ASSESSMENT,
+    TrackerStatus.OFFER,
+    TrackerStatus.REJECTED,
+    TrackerStatus.GHOSTED,
+    TrackerStatus.ARCHIVED,
+}
+
+
+def archive_stale_discoveries(
+    tracker_path: Path,
+    max_age_days: int = 7,
+) -> int:
+    """Archive found-status jobs older than max_age_days.
+
+    Uses posted_at if available, otherwise date_added.
+    Skips starred jobs and anything beyond 'found' status.
+    """
+    cutoff = date.today() - timedelta(days=max_age_days)
+
+    with tracker_lock():
+        if not tracker_path.exists():
+            return 0
+        _migrate_if_needed_unlocked(tracker_path)
+
+        rows: list[dict] = []
+        archived = 0
+        today = date.today().isoformat()
+
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                status = TrackerStatus(row["status"])
+                if status in _PROTECTED_STATUSES or status != TrackerStatus.FOUND:
+                    rows.append(row)
+                    continue
+
+                starred = (row.get("starred") or "").strip().lower() in {"1", "true", "yes"}
+                if starred:
+                    rows.append(row)
+                    continue
+
+                posted_raw = (row.get("posted_at") or "").strip()
+                added_raw = row.get("date_added", "")
+                ref_date_str = posted_raw or added_raw
+                try:
+                    ref_date = date.fromisoformat(ref_date_str)
+                except (ValueError, TypeError):
+                    rows.append(row)
+                    continue
+
+                if ref_date < cutoff:
+                    row["status"] = TrackerStatus.ARCHIVED.value
+                    row["date_updated"] = today
+                    archived += 1
+
+                rows.append(row)
+
+        if archived:
+            with open(tracker_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
+                writer.writeheader()
+                writer.writerows(rows)
+
+    return archived
 
 
 def job_id_exists(tracker_path: Path, job_id: str) -> bool:

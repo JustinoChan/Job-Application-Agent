@@ -78,3 +78,13 @@ class ApiClient:
             recommendation=data.get("recommendation"),
             reason=data.get("reason"),
         )
+
+    def archive_stale(self, max_age_days: int = 7) -> int:
+        if self._config.dry_run:
+            return 0
+        resp = self._client.post(
+            "/api/applications/archive-stale",
+            params={"max_age_days": max_age_days},
+        )
+        resp.raise_for_status()
+        return resp.json().get("archived", 0)

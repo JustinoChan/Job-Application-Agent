@@ -186,6 +186,14 @@ def run(self_test: bool = False) -> int:
         "scraper done  sent=%d saved=%d exists=%d skipped=%d failed=%d",
         sent, saved, exists, skipped, failed,
     )
+
+    try:
+        archived = api.archive_stale(max_age_days=7)
+        if archived:
+            log.info("archived %d stale discoveries (>7 days old)", archived)
+    except Exception as exc:
+        log.warning("archive-stale call failed: %s", exc)
+
     api.close()
     return 0 if failed == 0 else 1
 
