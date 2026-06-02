@@ -11,7 +11,11 @@ class OpenClawError(Exception):
 
 
 DEFAULT_OPENCLAW_COMMAND = "openclaw"
-DEFAULT_OPENCLAW_MODEL = "openai-codex/gpt-5.4-mini"
+# Empty by default: don't force a --model override. The gateway agent has its
+# own allowed default model, and overriding it to a model the agent doesn't
+# permit fails with "Model override ... is not allowed for agent". Set
+# OPENCLAW_MODEL explicitly only to a model the gateway actually allows.
+DEFAULT_OPENCLAW_MODEL = ""
 DEFAULT_OPENCLAW_TIMEOUT = 60.0
 
 
@@ -20,7 +24,7 @@ def get_openclaw_command() -> str:
 
 
 def get_openclaw_model() -> str:
-    return os.getenv("OPENCLAW_MODEL", DEFAULT_OPENCLAW_MODEL)
+    return os.getenv("OPENCLAW_MODEL", DEFAULT_OPENCLAW_MODEL).strip()
 
 
 def get_openclaw_timeout() -> float:
@@ -58,14 +62,15 @@ async def ask_openclaw(prompt: str, *, timeout: float | None = None) -> str:
     command = get_openclaw_command()
     model = get_openclaw_model()
     effective_timeout = timeout if timeout is not None else get_openclaw_timeout()
+    args = [command, "infer", "model", "run", "--gateway"]
+    if model:
+        # Only override the gateway agent's default model when explicitly
+        # configured to an allowed model. Otherwise let the agent decide.
+        args += ["--model", model]
+    args += ["--prompt", prompt, "--json"]
     try:
         proc = await asyncio.create_subprocess_exec(
-            command,
-            "infer", "model", "run",
-            "--gateway",
-            "--model", model,
-            "--prompt", prompt,
-            "--json",
+            *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
