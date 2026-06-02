@@ -9,10 +9,28 @@ const colors: Record<string, string> = {
   assessment: "#7c3aed",
   offer: "#059669",
   rejected: "#dc2626",
-  ghosted: "#cbd5e1"
+  ghosted: "#cbd5e1",
+  // Fit buckets (Discoveries tab)
+  strong: "#059669",
+  moderate: "#2563eb",
+  weak: "#d97706",
+  low: "#dc2626"
 };
 
-export default function StatusChart({ counts }: { counts: Record<string, number> }) {
+const labels: Record<string, string> = {
+  strong: "Strong (75%+)",
+  moderate: "Moderate (50-75%)",
+  weak: "Weak (30-50%)",
+  low: "Low (<30%)"
+};
+
+export default function StatusChart({
+  counts,
+  showLegend = false
+}: {
+  counts: Record<string, number>;
+  showLegend?: boolean;
+}) {
   const data = Object.entries(counts)
     .filter(([, value]) => value > 0)
     .map(([name, value]) => ({ name, value }));
@@ -36,6 +54,17 @@ export default function StatusChart({ counts }: { counts: Record<string, number>
           </Pie>
         </PieChart>
       </ResponsiveContainer>
+      {showLegend && (
+        <ul className="chart-legend">
+          {data.map((entry) => (
+            <li key={entry.name}>
+              <span className="legend-dot" style={{ background: colors[entry.name] || "#44403c" }} />
+              <span className="legend-label">{labels[entry.name] || entry.name}</span>
+              <span className="legend-value">{entry.value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

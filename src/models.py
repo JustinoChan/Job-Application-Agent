@@ -137,6 +137,7 @@ class TailoredProject(BaseModel):
     name: str
     role: Optional[str] = None
     date_range: Optional[str] = None
+    url: Optional[str] = None
     stack: list[str]
     selected_facts: list[SelectedFact]
 

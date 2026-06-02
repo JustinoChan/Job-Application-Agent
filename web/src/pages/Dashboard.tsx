@@ -184,6 +184,21 @@ export default function Dashboard() {
   const discoveryCount = (counts.found || 0) + (counts.prepared || 0) + (counts.reviewed || 0);
   const trackerCount = (counts.submitted || 0) + (counts.interview || 0) + (counts.assessment || 0) + (counts.offer || 0) + (counts.rejected || 0) + (counts.ghosted || 0);
 
+  // Real fit distribution across the currently-visible discoveries, bucketed
+  // by the same thresholds the table badges use.
+  const fitBuckets = useMemo(() => {
+    const b = { strong: 0, moderate: 0, weak: 0, low: 0 };
+    for (const app of visible) {
+      const s = app.fit_score;
+      if (s == null) continue;
+      if (s >= 0.75) b.strong += 1;
+      else if (s >= 0.5) b.moderate += 1;
+      else if (s >= 0.3) b.weak += 1;
+      else b.low += 1;
+    }
+    return b;
+  }, [visible]);
+
   return (
     <main className="page-shell">
       <div className="view-tabs">
@@ -303,11 +318,14 @@ export default function Dashboard() {
         <aside className="sidebar">
           <section className="side-card">
             <h2>{viewTab === "discoveries" ? "Fit Distribution" : "Status Breakdown"}</h2>
-            <StatusChart counts={
-              viewTab === "discoveries"
-                ? { found: counts.found || 0, prepared: counts.prepared || 0, reviewed: counts.reviewed || 0 }
-                : { submitted: counts.submitted || 0, interview: counts.interview || 0, assessment: counts.assessment || 0, offer: counts.offer || 0, rejected: counts.rejected || 0, ghosted: counts.ghosted || 0 }
-            } />
+            <StatusChart
+              showLegend
+              counts={
+                viewTab === "discoveries"
+                  ? { strong: fitBuckets.strong, moderate: fitBuckets.moderate, weak: fitBuckets.weak, low: fitBuckets.low }
+                  : { submitted: counts.submitted || 0, interview: counts.interview || 0, assessment: counts.assessment || 0, offer: counts.offer || 0, rejected: counts.rejected || 0, ghosted: counts.ghosted || 0 }
+              }
+            />
           </section>
           {viewTab === "tracker" && (
             <section className="side-card">

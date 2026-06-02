@@ -191,13 +191,28 @@ def generate_job_id(company: str, title: str) -> str:
     return slug[:60]
 
 
-def add_entry(tracker_path: Path, entry: TrackerEntry) -> None:
+def add_entry(tracker_path: Path, entry: TrackerEntry) -> bool:
+    """Append an entry, idempotently. Returns True if added, False if the
+    job_id already existed.
+
+    The existence check and the append happen inside a single lock
+    acquisition. Callers like the /discover endpoint do their own
+    job_id_exists() pre-check, but that is a separate lock acquisition —
+    leaving a TOCTOU window where two concurrent discoveries of the same
+    posting could both append. Doing the check-and-append atomically here
+    closes that window so the tracker can never accumulate duplicate rows.
+    """
     with tracker_lock():
         _ensure_tracker_exists_unlocked(tracker_path)
         _migrate_if_needed_unlocked(tracker_path)
+        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+            existing = {row["job_id"] for row in csv.DictReader(f)}
+        if entry.job_id in existing:
+            return False
         with open(tracker_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
             writer.writerow(_entry_to_row(entry))
+        return True
 
 
 def update_status(

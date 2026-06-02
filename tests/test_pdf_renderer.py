@@ -17,7 +17,7 @@ class TestRenderHtml:
 
         html = render_html(tailored, sample_profile)
 
-        assert "<html>" in html
+        assert "<html" in html
         assert sample_profile.name in html
         assert sample_profile.email in html
 

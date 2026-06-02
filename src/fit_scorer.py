@@ -38,7 +38,8 @@ def score_fit(
 
     project_scores = _score_projects(job, projects, rules)
 
-    overall = _compute_overall(skill_match_rate, nice_match_rate, project_scores)
+    has_nice = len(nice_matches) > 0
+    overall = _compute_overall(skill_match_rate, nice_match_rate, project_scores, has_nice)
     recommendation = _recommendation(overall, rules.min_fit_score_to_apply)
 
     return FitScore(
@@ -422,10 +423,20 @@ def _score_projects(
 
 
 def _compute_overall(
-    skill_rate: float, nice_rate: float, project_scores: list[ProjectScore]
+    skill_rate: float,
+    nice_rate: float,
+    project_scores: list[ProjectScore],
+    has_nice: bool = True,
 ) -> float:
     top_project_scores = [ps.relevance_score for ps in project_scores[:2]]
     avg_project = sum(top_project_scores) / max(len(top_project_scores), 1) if top_project_scores else 0.0
+
+    # When a posting has no parsed nice-to-have section, scoring its match
+    # rate as 0 unfairly drops ~15% off otherwise-strong fits. Redistribute
+    # that weight across skills and projects (renormalized to sum to 1.0)
+    # instead of penalizing the posting for something it never listed.
+    if not has_nice:
+        return (0.50 * skill_rate + 0.35 * avg_project) / 0.85
 
     return 0.50 * skill_rate + 0.15 * nice_rate + 0.35 * avg_project
 

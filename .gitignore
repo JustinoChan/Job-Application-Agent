@@ -61,3 +61,8 @@ scraper/.env
 
 outputs
 data
+
+# Loom screening prep — local only
+presentation/
+jobs/tracker.backup-*.csv
+goal.txt

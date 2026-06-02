@@ -18,9 +18,9 @@ interface Props {
 const SORTABLE: Array<{ key: SortKey; label: string }> = [
   { key: "starred", label: "★" },
   { key: "company", label: "Company" },
+  { key: "fit_score", label: "Fit" },
   { key: "role", label: "Role" },
   { key: "status", label: "Status" },
-  { key: "fit_score", label: "Fit" },
   { key: "date_added", label: "Added" },
   { key: "date_updated", label: "Updated" },
 ];
@@ -154,6 +154,15 @@ export default function ApplicationTable({
                   </button>
                 </td>
                 <td><Link to={`/job/${app.job_id}`} className="company-link">{app.company}</Link></td>
+                <td>
+                  {app.fit_score == null ? (
+                    <span className="fit-cell fit-unscored">—</span>
+                  ) : (
+                    <span className={`fit-cell ${fitClass(app.fit_score)}`}>
+                      {Math.round(app.fit_score * 100)}%
+                    </span>
+                  )}
+                </td>
                 <td className="role-cell">{app.role}</td>
                 <td>
                   <select
@@ -166,13 +175,6 @@ export default function ApplicationTable({
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                </td>
-                <td>
-                  {app.fit_score == null ? "-" : (
-                    <span className={`fit-cell ${fitClass(app.fit_score)}`}>
-                      {Math.round(app.fit_score * 100)}%
-                    </span>
-                  )}
                 </td>
                 <td className="date-cell">{app.date_added || "-"}</td>
                 <td className="date-cell">{app.date_updated}</td>

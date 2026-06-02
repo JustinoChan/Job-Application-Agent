@@ -19,8 +19,16 @@ def render_html(tailored: TailoredResume, profile: MasterProfile) -> str:
         "location": profile.location,
         "github": profile.github,
         "portfolio": profile.portfolio,
+        "linkedin": profile.linkedin,
+        "summary": profile.summary,
         "education": [
-            {"school": e.school, "degree": e.degree, "graduation": e.graduation}
+            {
+                "school": e.school,
+                "degree": e.degree,
+                "graduation": e.graduation,
+                "gpa": e.gpa,
+                "relevant_coursework": e.relevant_coursework,
+            }
             for e in profile.education
         ],
         "skills_strong": tailored.reordered_skills.strong,
@@ -30,6 +38,7 @@ def render_html(tailored: TailoredResume, profile: MasterProfile) -> str:
                 "name": p.name,
                 "role": p.role,
                 "date_range": p.date_range,
+                "url": p.url,
                 "stack": p.stack,
                 "bullets": [f.original_text for f in p.selected_facts],
             }

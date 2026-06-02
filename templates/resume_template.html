@@ -1,55 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
+  <title>{{ name }} - Resume</title>
   <style>
+    @page { size: letter; margin: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      font-size: 11px;
-      line-height: 1.35;
-      margin: 36px;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 10pt;
+      line-height: 1.24;
+      color: #000;
+      margin: 0.35in 0.5in;
     }
-    h1 {
-      font-size: 20px;
-      margin-bottom: 4px;
-    }
+
+    .header { text-align: center; }
+    .name { font-size: 24pt; font-weight: bold; line-height: 1.1; }
+    .contact { font-size: 10pt; margin-top: 1px; }
+    .contact a { color: #0563C1; text-decoration: underline; }
+
     h2 {
-      font-size: 13px;
-      border-bottom: 1px solid #222;
-      margin-top: 14px;
+      font-size: 11pt;
+      font-weight: bold;
+      margin-top: 7px;
+      padding-bottom: 1px;
+      border-bottom: 1.5px solid #000;
     }
-    ul {
-      margin-top: 4px;
+
+    .summary { margin-top: 3px; text-align: justify; }
+
+    .edu-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 3px;
     }
+    .edu-degree { font-style: italic; }
+
+    .project { margin-top: 4px; }
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .project-name { font-weight: bold; }
+    .project-date { font-weight: bold; white-space: nowrap; }
+    .project a { color: #0563C1; text-decoration: underline; font-size: 9pt; }
+
+    ul { margin: 0 0 0 14px; padding-left: 0; }
+    li { margin-bottom: 0; }
+
+    .skills ul { margin-top: 2px; }
   </style>
 </head>
 <body>
-  <h1>{{ name }}</h1>
-  <div>{{ email }}{% if phone %} | {{ phone }}{% endif %} | {{ location }}{% if github %} | {{ github }}{% endif %}{% if portfolio %} | {{ portfolio }}{% endif %}</div>
+
+  <div class="header">
+    <div class="name">{{ name }}</div>
+    <div class="contact">
+      {{ location }}{% if phone %} | {{ phone }}{% endif %} | <a href="mailto:{{ email }}">{{ email }}</a>{% if github %} | <a href="https://{{ github }}">{{ github }}</a>{% endif %}{% if portfolio %} | <a href="https://{{ portfolio }}">{{ portfolio }}</a>{% endif %}{% if linkedin %} | <a href="https://{{ linkedin }}">{{ linkedin }}</a>{% endif %}
+    </div>
+  </div>
+
+  {% if summary %}
+  <h2>Summary</h2>
+  <div class="summary">{{ summary }}</div>
+  {% endif %}
 
   <h2>Education</h2>
   {% for edu in education %}
-  <div><strong>{{ edu.school }}</strong> — {{ edu.degree }}, {{ edu.graduation }}</div>
+  <div class="edu-row">
+    <div><strong>{{ edu.school }}</strong></div>
+    <div><strong>{{ edu.graduation }}</strong></div>
+  </div>
+  <div class="edu-degree">{{ edu.degree }}</div>
+  <ul>
+    {% if edu.gpa %}<li><strong>GPA:</strong> {{ edu.gpa }}</li>{% endif %}
+    {% if edu.relevant_coursework %}<li><strong>Coursework:</strong> {{ edu.relevant_coursework | join(", ") }}</li>{% endif %}
+  </ul>
   {% endfor %}
-
-  <h2>Skills</h2>
-  <div><strong>Proficient:</strong> {{ skills_strong | join(", ") }}</div>
-  {% if skills_familiar %}
-  <div><strong>Familiar:</strong> {{ skills_familiar | join(", ") }}</div>
-  {% endif %}
 
   <h2>Projects</h2>
   {% for project in projects %}
-  <div>
-    <strong>{{ project.name }}</strong>{% if project.role %} | {{ project.role }}{% endif %}{% if project.date_range %} | {{ project.date_range }}{% endif %}
-    <br />
-    <em>{{ project.stack | join(", ") }}</em>
+  <div class="project">
+    <div class="project-header">
+      <div><span class="project-name">{{ project.name }}</span>{% if project.url %} | <a href="{{ project.url }}">{{ project.url }}</a>{% endif %}</div>
+      {% if project.date_range %}<div class="project-date">{{ project.date_range }}</div>{% endif %}
+    </div>
     <ul>
+      <li>Technologies: {{ project.stack | join(", ") }}</li>
       {% for bullet in project.bullets %}
       <li>{{ bullet }}</li>
       {% endfor %}
     </ul>
   </div>
   {% endfor %}
+
+  <h2>Skills</h2>
+  <div class="skills">
+    <ul>
+      <li><strong>Proficient:</strong> {{ skills_strong | join(", ") }}</li>
+      {% if skills_familiar %}<li><strong>Familiar:</strong> {{ skills_familiar | join(", ") }}</li>{% endif %}
+    </ul>
+  </div>
+
 </body>
 </html>

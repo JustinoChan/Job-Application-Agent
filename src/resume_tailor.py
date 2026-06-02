@@ -42,6 +42,7 @@ def tailor_resume(
             name=proj.name,
             role=proj.role,
             date_range=proj.date_range,
+            url=proj.url,
             stack=reordered_stack,
             selected_facts=facts,
         ))
@@ -175,6 +176,11 @@ def render_resume_markdown(tailored: TailoredResume, profile: MasterProfile) -> 
     lines.append(" | ".join(contact_parts))
     lines.append("")
 
+    if profile.summary:
+        lines.append("## Summary")
+        lines.append(profile.summary.strip())
+        lines.append("")
+
     if profile.education:
         lines.append("## Education")
         for edu in profile.education:
@@ -184,25 +190,25 @@ def render_resume_markdown(tailored: TailoredResume, profile: MasterProfile) -> 
                 lines.append(f"Relevant Coursework: {', '.join(edu.relevant_coursework)}")
         lines.append("")
 
+    lines.append("## Projects")
+    for proj in tailored.selected_projects:
+        header = f"### {proj.name}"
+        if proj.url:
+            header += f" | {proj.url}"
+        if proj.date_range:
+            header += f" | {proj.date_range}"
+        lines.append(header)
+        lines.append(f"Technologies: {', '.join(proj.stack)}")
+        for fact in proj.selected_facts:
+            lines.append(f"- {fact.original_text}")
+        lines.append("")
+
     lines.append("## Skills")
     skills = tailored.reordered_skills
     lines.append(f"**Proficient:** {', '.join(skills.strong)}")
     if skills.familiar:
         lines.append(f"**Familiar:** {', '.join(skills.familiar)}")
     lines.append("")
-
-    lines.append("## Projects")
-    for proj in tailored.selected_projects:
-        header = f"### {proj.name}"
-        if proj.role:
-            header += f" | {proj.role}"
-        if proj.date_range:
-            header += f" | {proj.date_range}"
-        lines.append(header)
-        lines.append(f"*{', '.join(proj.stack)}*")
-        for fact in proj.selected_facts:
-            lines.append(f"- {fact.original_text}")
-        lines.append("")
 
     return "\n".join(lines)
 
