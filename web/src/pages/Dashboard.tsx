@@ -15,7 +15,7 @@ import FilterBar, { FilterState } from "../components/FilterBar";
 import QuickStats from "../components/QuickStats";
 import StatusChart from "../components/StatusChart";
 
-const EMPTY_FILTERS: FilterState = { minFit: 0, company: "", search: "", dateFrom: "", dateTo: "" };
+const EMPTY_FILTERS: FilterState = { minFit: 0, company: "", location: "", search: "", dateFrom: "", dateTo: "" };
 
 type ViewTab = "discoveries" | "tracker";
 
@@ -80,15 +80,17 @@ export default function Dashboard() {
 
   const visible = useMemo(() => {
     const companyNeedle = filters.company.trim().toLowerCase();
+    const locationNeedle = filters.location.trim().toLowerCase();
     return tabFiltered.filter((app) => {
       if ((app.fit_score ?? 0) < filters.minFit) return false;
       if (companyNeedle && !app.company.toLowerCase().includes(companyNeedle)) return false;
+      if (locationNeedle && !(app.location || "").toLowerCase().includes(locationNeedle)) return false;
       if (searchMatches !== null && !searchMatches.has(app.job_id)) return false;
       if (filters.dateFrom && app.date_added < filters.dateFrom) return false;
       if (filters.dateTo && app.date_added > filters.dateTo) return false;
       return true;
     });
-  }, [tabFiltered, filters.minFit, filters.company, filters.dateFrom, filters.dateTo, searchMatches]);
+  }, [tabFiltered, filters.minFit, filters.company, filters.location, filters.dateFrom, filters.dateTo, searchMatches]);
 
   const handleToggleStar = useCallback(async (jobId: string, starred: boolean) => {
     setApplications((prev) => prev.map((a) => (a.job_id === jobId ? { ...a, starred } : a)));
@@ -203,18 +205,18 @@ export default function Dashboard() {
     <main className="page-shell">
       <div className="view-tabs">
         <button
-          className={`view-tab${viewTab === "discoveries" ? " active" : ""}`}
-          onClick={() => switchTab("discoveries")}
-        >
-          Discoveries
-          <span className="view-tab-count">{discoveryCount}</span>
-        </button>
-        <button
           className={`view-tab${viewTab === "tracker" ? " active" : ""}`}
           onClick={() => switchTab("tracker")}
         >
           Applied Tracker
           <span className="view-tab-count">{trackerCount}</span>
+        </button>
+        <button
+          className={`view-tab${viewTab === "discoveries" ? " active" : ""}`}
+          onClick={() => switchTab("discoveries")}
+        >
+          Discoveries
+          <span className="view-tab-count">{discoveryCount}</span>
         </button>
       </div>
 

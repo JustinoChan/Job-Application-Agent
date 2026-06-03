@@ -325,7 +325,7 @@ label {
 .dashboard-grid {
   display: grid;
   gap: 20px;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   min-height: calc(100vh - 200px);
 }
 
@@ -375,8 +375,8 @@ label {
 .application-table th,
 .application-table td {
   border-bottom: 1px solid var(--border-light);
-  font-size: 13px;
-  padding: 11px 10px;
+  font-size: 12.5px;
+  padding: 9px 8px;
   text-align: left;
   white-space: nowrap;
 }
@@ -421,9 +421,17 @@ label {
 }
 
 .role-cell {
-  max-width: 220px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.loc-cell {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .date-cell {
@@ -560,7 +568,12 @@ label {
 }
 
 .chart-wrap {
-  height: 170px;
+  /* Height auto so the legend below the donut isn't clipped by the card. */
+  display: flex;
+  flex-direction: column;
+}
+.chart-wrap .recharts-responsive-container {
+  margin: 0 auto;
 }
 
 .stat-list div {

@@ -39,6 +39,15 @@ KNOWN_TECH_TERMS = {
     "nginx", "apache", "kong",
 }
 
+# Tech terms that collide with common English words. Scanning for these in
+# free prose produces false positives — e.g. "I am writing to express my
+# interest" trips the Express.js detector, and "go", "spark", "swift" appear
+# constantly as ordinary words. We skip them in the unsourced-tech scan; the
+# forbidden-phrase and source-overlap checks still guard real over-claims.
+AMBIGUOUS_TECH = {
+    "express", "go", "r", "c", "spark", "bun", "rails", "swift", "ember", "kong",
+}
+
 CLAIM_VERBS = {
     "built", "build", "developed", "develop", "implemented", "implement",
     "integrated", "integrate", "migrated", "migrate", "processed", "process",
@@ -116,6 +125,8 @@ def _scan_unsourced_tech(text: str, allowlist: set[str]) -> list[str]:
     text_lower = text.lower()
     unsourced: list[str] = []
     for tech in KNOWN_TECH_TERMS:
+        if tech in AMBIGUOUS_TECH:
+            continue  # common English word — too noisy to flag in prose
         pattern = r"(?<![A-Za-z0-9_+#.-])" + re.escape(tech) + r"(?![A-Za-z0-9_+#-])"
         if re.search(pattern, text_lower):
             if tech not in allowlist:
@@ -307,14 +318,12 @@ def _source_texts(
         for project in projects
         for fact in project.facts
     }
-    if letter.referenced_fact_ids:
-        facts = [
-            fact_lookup[fact_id]
-            for fact_id in letter.referenced_fact_ids
-            if fact_id in fact_lookup
-        ]
-    else:
-        facts = list(fact_lookup.values())
+    # Validate against the candidate's full truthful corpus, not just the
+    # facts selected for this particular resume. A cover-letter claim is
+    # truthful if it traces to ANY real project fact — restricting to the
+    # resume's selected facts failed verbatim claims about other real
+    # projects (e.g. the search engine).
+    facts = list(fact_lookup.values())
 
     profile_sources = [
         profile.name,
@@ -348,10 +357,41 @@ def _is_claim_sentence(sentence: str) -> bool:
         return True
     if any(re.search(r"\d", token) for token in tokens):
         return True
-    mentioned_tech = _scan_unsourced_tech(sentence, set()) or [
-        tech for tech in KNOWN_TECH_TERMS if tech in lower
-    ]
-    return bool(mentioned_tech)
+    # Word-boundary tech detection only. The old substring fallback matched
+    # single letters like "r"/"c" inside ordinary words, flagging nearly every
+    # sentence as a claim.
+    return bool(_scan_unsourced_tech(sentence, set()))
+
+
+def _candidate_capability_terms(
+    profile: MasterProfile, projects: list[Project]
+) -> set[str]:
+    """Real skills/technologies/project names the candidate actually has.
+
+    Used to distinguish a truthful-but-narrative claim (which names a real
+    capability) from a fabricated one. Deliberately excludes job-posting
+    keywords — claiming something only because the job wants it isn't
+    grounded in the candidate's own experience.
+    """
+    terms: set[str] = set()
+    terms.update(s.lower() for s in profile.skills.strong)
+    terms.update(s.lower() for s in profile.skills.familiar)
+    for p in projects:
+        terms.add(p.name.lower())
+        terms.update(s.lower() for s in p.stack)
+        for f in p.facts:
+            terms.update(k.lower() for k in f.keywords)
+    return {t for t in terms if len(t) >= 3}
+
+
+def _mentions_candidate_capability(sentence_lower: str, terms: set[str]) -> bool:
+    for t in terms:
+        if any(ch in t for ch in " .+#"):
+            if t in sentence_lower:
+                return True
+        elif re.search(r"(?<![a-z0-9])" + re.escape(t) + r"(?![a-z0-9])", sentence_lower):
+            return True
+    return False
 
 
 def _is_generic_sentence(sentence: str) -> bool:
@@ -402,11 +442,20 @@ def audit_cover_letter(
 
     sources = _source_texts(letter, profile, projects)
     source_tokens = [_tokens(source) for source in sources]
+    capability_terms = _candidate_capability_terms(profile, projects)
     for index, sentence in enumerate(_sentences(full_text), start=1):
         if not _is_claim_sentence(sentence) or _is_generic_sentence(sentence):
             continue
         score = _best_source_overlap(sentence, source_tokens)
-        if score >= 0.28:
+        names_real_capability = _mentions_candidate_capability(sentence.lower(), capability_terms)
+        # Graduated severity: cover-letter prose is narrative, so a strict
+        # exact-overlap bar produces false positives on truthful connective
+        # sentences (which echo job-description language). A sentence that
+        # references real, sourced work but reads narratively earns an
+        # advisory WARN, not a hard block. Only near-zero overlap — a sign
+        # the claim isn't grounded in any real fact — hard-FAILs. Unsourced
+        # technologies and forbidden phrases above still hard-FAIL regardless.
+        if score >= 0.20:
             entries.append(AuditEntry(
                 fact_id=f"cover-letter-sentence-{index}",
                 project_id="cover_letter",
@@ -414,6 +463,18 @@ def audit_cover_letter(
                 source_text="approved source overlap",
                 verdict=AuditVerdict.PASS,
                 reason=f"Claim has source overlap ({score:.0%}).",
+            ))
+        elif score >= 0.10 and names_real_capability:
+            entries.append(AuditEntry(
+                fact_id=f"narrative-sentence-{index}",
+                project_id="cover_letter",
+                resume_text=sentence,
+                source_text="partial source overlap",
+                verdict=AuditVerdict.WARN,
+                reason=(
+                    "Narrative sentence names a real skill/project but has diluted "
+                    f"overlap ({score:.0%}); review before sending."
+                ),
             ))
         else:
             entries.append(AuditEntry(
@@ -424,7 +485,7 @@ def audit_cover_letter(
                 verdict=AuditVerdict.FAIL,
                 reason=(
                     "Cover-letter claim has weak overlap with the approved "
-                    f"profile/project facts ({score:.0%})."
+                    f"profile/project facts ({score:.0%}); likely unsupported."
                 ),
             ))
 

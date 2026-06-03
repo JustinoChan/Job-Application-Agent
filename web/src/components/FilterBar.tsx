@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 export interface FilterState {
   minFit: number;
   company: string;
+  location: string;
   search: string;
   dateFrom: string;
   dateTo: string;
@@ -49,6 +50,15 @@ export default function FilterBar({ value, onChange }: FilterBarProps) {
         />
       </label>
       <label className="filter-field">
+        <span>Location</span>
+        <input
+          type="text"
+          value={value.location}
+          placeholder="e.g. Remote, CA"
+          onChange={(e) => onChange({ ...value, location: e.target.value })}
+        />
+      </label>
+      <label className="filter-field">
         <span>Search posting text</span>
         <input
           type="search"
@@ -73,13 +83,13 @@ export default function FilterBar({ value, onChange }: FilterBarProps) {
           onChange={(e) => onChange({ ...value, dateTo: e.target.value })}
         />
       </label>
-      {(value.minFit > 0 || value.company || value.search || value.dateFrom || value.dateTo) && (
+      {(value.minFit > 0 || value.company || value.location || value.search || value.dateFrom || value.dateTo) && (
         <button
           type="button"
           className="filter-reset"
           onClick={() => {
             setSearch("");
-            onChange({ minFit: 0, company: "", search: "", dateFrom: "", dateTo: "" });
+            onChange({ minFit: 0, company: "", location: "", search: "", dateFrom: "", dateTo: "" });
           }}
         >
           Reset

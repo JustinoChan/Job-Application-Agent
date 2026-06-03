@@ -37,6 +37,30 @@ def get_openclaw_timeout() -> float:
         return DEFAULT_OPENCLAW_TIMEOUT
 
 
+def _resolve_base_argv(command: str) -> list[str]:
+    """Return the argv prefix used to launch OpenClaw.
+
+    On Windows, npm installs OpenClaw as a `.cmd` shim that ultimately runs
+    `node <entry>.mjs %*`. Passing our large JSON prompt through that shim
+    makes cmd.exe re-parse the arguments: the JSON's own double quotes break
+    cmd's quoting, so any `&` in the payload (e.g. a `&gh_jid=...` Greenhouse
+    apply-URL parameter) is treated as a command separator — cmd then tries to
+    run the trailing fragment as its own command and the call fails with
+    "'gh_jid' is not recognized as an internal or external command". Invoking
+    node + the entry script directly hands argv straight to node (standard C
+    runtime parsing) so the prompt survives intact.
+    """
+    if os.name == "nt" and command.lower().endswith((".cmd", ".bat")):
+        shim_dir = os.path.dirname(os.path.abspath(command))
+        entry = os.path.join(shim_dir, "node_modules", "openclaw", "openclaw.mjs")
+        if os.path.exists(entry):
+            node = os.path.join(shim_dir, "node.exe")
+            if not os.path.exists(node):
+                node = "node"
+            return [node, entry]
+    return [command]
+
+
 def is_openclaw_available() -> tuple[bool, str]:
     command = get_openclaw_command()
     try:
@@ -62,7 +86,7 @@ async def ask_openclaw(prompt: str, *, timeout: float | None = None) -> str:
     command = get_openclaw_command()
     model = get_openclaw_model()
     effective_timeout = timeout if timeout is not None else get_openclaw_timeout()
-    args = [command, "infer", "model", "run", "--gateway"]
+    args = _resolve_base_argv(command) + ["infer", "model", "run", "--gateway"]
     if model:
         # Only override the gateway agent's default model when explicitly
         # configured to an allowed model. Otherwise let the agent decide.

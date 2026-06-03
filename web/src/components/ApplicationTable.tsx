@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { TrackerEntry } from "../api/types";
 
-type SortKey = "company" | "role" | "status" | "fit_score" | "posted_at" | "date_added" | "date_updated" | "starred";
+type SortKey = "company" | "role" | "location" | "status" | "fit_score" | "posted_at" | "date_added" | "date_updated" | "starred";
 type SortDir = "asc" | "desc";
 
 interface Props {
@@ -20,7 +20,9 @@ const SORTABLE: Array<{ key: SortKey; label: string }> = [
   { key: "company", label: "Company" },
   { key: "fit_score", label: "Fit" },
   { key: "role", label: "Role" },
+  { key: "location", label: "Location" },
   { key: "status", label: "Status" },
+  { key: "posted_at", label: "Posted" },
   { key: "date_added", label: "Added" },
   { key: "date_updated", label: "Updated" },
 ];
@@ -58,7 +60,7 @@ export default function ApplicationTable({
       setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
       setSortKey(key);
-      setSortDir(key === "company" || key === "role" ? "asc" : "desc");
+      setSortDir(key === "company" || key === "role" || key === "location" ? "asc" : "desc");
     }
   }
 
@@ -164,6 +166,7 @@ export default function ApplicationTable({
                   )}
                 </td>
                 <td className="role-cell">{app.role}</td>
+                <td className="loc-cell" title={app.location || ""}>{app.location || "-"}</td>
                 <td>
                   <select
                     className={`status-select status-${app.status}`}
@@ -176,6 +179,7 @@ export default function ApplicationTable({
                     ))}
                   </select>
                 </td>
+                <td className="date-cell">{app.posted_at || "-"}</td>
                 <td className="date-cell">{app.date_added || "-"}</td>
                 <td className="date-cell">{app.date_updated}</td>
                 <td>{app.latest_resume_version ? `v${String(app.latest_resume_version).padStart(3, "0")}` : "-"}</td>
@@ -207,7 +211,7 @@ export default function ApplicationTable({
               </tr>
               {expandedNote === app.job_id && (
                 <tr key={`${app.job_id}-note`} className="note-row">
-                  <td colSpan={14}>
+                  <td colSpan={16}>
                     <div className="note-editor">
                       <textarea
                         value={editingNote}
@@ -245,6 +249,8 @@ function compare(a: TrackerEntry, b: TrackerEntry, key: SortKey, dir: SortDir): 
       return sign * a.company.localeCompare(b.company);
     case "role":
       return sign * a.role.localeCompare(b.role);
+    case "location":
+      return sign * (a.location || "").localeCompare(b.location || "");
     case "status":
       return sign * a.status.localeCompare(b.status);
     case "fit_score":
