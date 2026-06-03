@@ -65,6 +65,7 @@ def render_cover_letter_html(letter: CoverLetter, profile: MasterProfile) -> str
         "location": profile.location,
         "github": profile.github,
         "portfolio": profile.portfolio,
+        "linkedin": profile.linkedin,
         "today": date.today().strftime("%B %d, %Y"),
         "company": letter.company,
         "title": letter.title,
@@ -89,15 +90,14 @@ async def render_pdf(html_path: Path, pdf_path: Path) -> Path:
         browser = await p.chromium.launch()
         page = await browser.new_page()
         await page.goto(html_path.as_uri())
+        # Each template owns its own page margins via `@page` + `body` margin,
+        # so don't add a second margin here — doing so double-margins the page
+        # and can push a full one-page resume onto a second page.
         await page.pdf(
             path=str(pdf_path),
             format="Letter",
-            margin={
-                "top": "0.5in",
-                "bottom": "0.5in",
-                "left": "0.5in",
-                "right": "0.5in",
-            },
+            margin={"top": "0", "bottom": "0", "left": "0", "right": "0"},
+            print_background=True,
         )
         await browser.close()
     return pdf_path

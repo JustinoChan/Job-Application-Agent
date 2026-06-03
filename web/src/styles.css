@@ -325,18 +325,26 @@ label {
 .dashboard-grid {
   display: grid;
   gap: 20px;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  /* Single column so the job table gets the full page width and its
+     columns aren't clipped by a side panel. The chart sits below it. */
+  grid-template-columns: minmax(0, 1fr);
   min-height: calc(100vh - 200px);
 }
 
 .workspace-panel {
-  min-height: 540px;
+  min-height: 420px;
 }
 
 .sidebar {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   align-content: start;
   gap: 16px;
+}
+
+.sidebar .side-card {
+  flex: 1 1 320px;
+  max-width: 460px;
 }
 
 .side-card,
@@ -825,6 +833,17 @@ label {
 .fit-weak { color: var(--warning); background: var(--warning-bg); }
 .fit-skip { color: var(--danger); background: var(--danger-bg); }
 .fit-unscored { color: var(--text-muted); background: transparent; font-weight: 600; }
+
+.level-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
 
 /* ═══ Audit ════════════════════════════════════════════════════════ */
 

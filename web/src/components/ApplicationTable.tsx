@@ -2,8 +2,25 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { TrackerEntry } from "../api/types";
 
-type SortKey = "company" | "role" | "location" | "status" | "fit_score" | "posted_at" | "date_added" | "date_updated" | "starred";
+type SortKey = "company" | "role" | "level" | "location" | "status" | "fit_score" | "posted_at" | "date_added" | "date_updated" | "starred";
 type SortDir = "asc" | "desc";
+
+// Derive a job level from the role title (intern -> principal). Checked from
+// most senior down so "Senior Staff" reads as Staff, etc.
+const LEVELS: Array<{ rank: number; label: string; test: RegExp }> = [
+  { rank: 0, label: "Intern", test: /\b(intern|internship|co-?op)\b/i },
+  { rank: 5, label: "Principal", test: /\b(principal|distinguished|fellow)\b/i },
+  { rank: 4, label: "Staff", test: /\bstaff\b/i },
+  { rank: 3, label: "Senior", test: /\b(senior|sr\.?)\b/i },
+  { rank: 1, label: "Entry", test: /\b(new ?grad|entry[- ]?level|junior|jr\.?|associate|early[- ]?career)\b/i },
+];
+
+function levelOf(role: string): { rank: number; label: string } {
+  for (const lvl of LEVELS) {
+    if (lvl.test.test(role)) return { rank: lvl.rank, label: lvl.label };
+  }
+  return { rank: 2, label: "Mid" };
+}
 
 interface Props {
   applications: TrackerEntry[];
@@ -20,6 +37,7 @@ const SORTABLE: Array<{ key: SortKey; label: string }> = [
   { key: "company", label: "Company" },
   { key: "fit_score", label: "Fit" },
   { key: "role", label: "Role" },
+  { key: "level", label: "Level" },
   { key: "location", label: "Location" },
   { key: "status", label: "Status" },
   { key: "posted_at", label: "Posted" },
@@ -166,6 +184,7 @@ export default function ApplicationTable({
                   )}
                 </td>
                 <td className="role-cell">{app.role}</td>
+                <td><span className="level-badge">{levelOf(app.role).label}</span></td>
                 <td className="loc-cell" title={app.location || ""}>{app.location || "-"}</td>
                 <td>
                   <select
@@ -211,7 +230,7 @@ export default function ApplicationTable({
               </tr>
               {expandedNote === app.job_id && (
                 <tr key={`${app.job_id}-note`} className="note-row">
-                  <td colSpan={16}>
+                  <td colSpan={17}>
                     <div className="note-editor">
                       <textarea
                         value={editingNote}
@@ -251,6 +270,8 @@ function compare(a: TrackerEntry, b: TrackerEntry, key: SortKey, dir: SortDir): 
       return sign * a.role.localeCompare(b.role);
     case "location":
       return sign * (a.location || "").localeCompare(b.location || "");
+    case "level":
+      return sign * (levelOf(a.role).rank - levelOf(b.role).rank);
     case "status":
       return sign * a.status.localeCompare(b.status);
     case "fit_score":

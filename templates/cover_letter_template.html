@@ -1,41 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
+  <title>{{ name }} - Cover Letter</title>
   <style>
+    @page { size: letter; margin: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      font-size: 11px;
-      line-height: 1.5;
-      margin: 36px;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 11pt;
+      line-height: 1.45;
+      color: #000;
+      margin: 0.6in 0.7in;
     }
-    h1 {
-      font-size: 20px;
-      margin-bottom: 4px;
-    }
-    .contact {
-      margin-bottom: 18px;
-    }
-    .date {
-      margin-bottom: 18px;
-    }
-    .recipient {
-      margin-bottom: 18px;
-    }
-    .recipient strong {
-      display: block;
-    }
-    p {
-      margin: 0 0 12px 0;
-    }
-    .signature {
-      margin-top: 24px;
-    }
+
+    .header { text-align: center; }
+    .name { font-size: 24pt; font-weight: bold; line-height: 1.1; }
+    .contact { font-size: 10.5pt; margin-top: 2px; }
+    .contact a { color: #0563C1; text-decoration: underline; }
+
+    .date { margin-top: 22px; }
+    .recipient { margin-top: 14px; }
+    .recipient strong { display: block; }
+
+    p { margin-top: 11px; text-align: justify; }
+    .signature { margin-top: 22px; }
   </style>
 </head>
 <body>
-  <h1>{{ name }}</h1>
-  <div class="contact">{{ email }}{% if phone %} | {{ phone }}{% endif %} | {{ location }}{% if github %} | {{ github }}{% endif %}{% if portfolio %} | {{ portfolio }}{% endif %}</div>
+
+  <div class="header">
+    <div class="name">{{ name }}</div>
+    <div class="contact">
+      {{ location }}{% if phone %} | {{ phone }}{% endif %} | <a href="mailto:{{ email }}">{{ email }}</a>{% if github %} | <a href="https://{{ github }}">{{ github }}</a>{% endif %}{% if portfolio %} | <a href="https://{{ portfolio }}">{{ portfolio }}</a>{% endif %}{% if linkedin %} | <a href="https://{{ linkedin }}">{{ linkedin }}</a>{% endif %}
+    </div>
+  </div>
 
   <div class="date">{{ today }}</div>
 
@@ -55,7 +54,8 @@
   <p>{{ closing }}</p>
 
   <div class="signature">
-    <p>Sincerely,<br />{{ name }}</p>
+    Sincerely,<br />{{ name }}
   </div>
+
 </body>
 </html>
