@@ -379,6 +379,7 @@ export default function JobDetail() {
               </button>
               {coverLetterVersions.length > 1 && (
                 <select
+                  className="version-select"
                   value={selectedCoverVersion || ""}
                   onChange={(event) => handleSelectCoverVersion(Number(event.target.value))}
                 >
@@ -387,7 +388,7 @@ export default function JobDetail() {
                   ))}
                 </select>
               )}
-              {selectedCoverVersion && coverAudit?.overall_verdict === "pass" && (
+              {selectedCoverVersion && coverAudit?.overall_verdict !== "fail" && (
                 <a className="secondary button-link" href={coverLetterPdfUrl(jobId, selectedCoverVersion)} target="_blank" rel="noreferrer">
                   Download PDF
                 </a>

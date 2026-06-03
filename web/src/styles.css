@@ -202,7 +202,22 @@ label {
 .inline-row {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+}
+
+/* Keep action buttons proportional — never let the label wrap to 2 lines. */
+.actions-row > button,
+.actions-row > .button-link {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+/* Version picker should size to its content, not stretch across the row. */
+.version-select {
+  width: auto;
+  min-width: 88px;
+  flex: 0 0 auto;
 }
 
 .toolbar {
