@@ -317,6 +317,9 @@ python -m src.main render-cover-letter-pdf <job-id>
 # Tracker
 python -m src.main status
 python -m src.main log <job-id> submitted --notes "Applied via website"
+python -m src.main log <job-id> interview --response-date 2026-06-03 --response-type recruiter_screen --interview-stage recruiter --source-quality 4
+python -m src.main backup-tracker
+python -m src.main restore-tracker jobs/tracker.backup-20260603-120000.csv
 ```
 
 Versions are monotonic per `job-id` — each `tailor` run writes `resume_v001.md`, `resume_v002.md`, etc. and never overwrites.
@@ -341,7 +344,9 @@ Applications flow through these statuses:
 
 The scraper inserts new postings as `found`. You review on the dashboard, then click `Save to Tracker` (or run `python -m src.main tailor <job-id>`) to advance to `prepared` with a versioned audited resume attached. Manual status updates from there.
 
-The tracker.csv schema auto-migrates on each read — adding a new column to `TRACKER_COLUMNS` requires only a one-line entry in `_COLUMN_DEFAULTS` in [src/tracker.py](src/tracker.py), no manual migration script.
+The tracker also captures lightweight application feedback: `response_date`, `response_type`, `interview_stage`, and `source_quality` (1-5). These fields let the dashboard report real response rate and source quality instead of only counting status changes.
+
+The tracker.csv schema auto-migrates on each read — adding a new column to `TRACKER_COLUMNS` requires only a one-line entry in `_COLUMN_DEFAULTS` in [src/tracker.py](src/tracker.py), no manual migration script. Before risky tracker work, run `python -m src.main backup-tracker`; restoring with `restore-tracker` automatically saves a `tracker.pre-restore-*.csv` copy first.
 
 ## Tests
 
@@ -358,9 +363,9 @@ python -m pytest tests/ -v --basetemp .pytest_tmp_run
 - **v0.1** CLI pipeline with fit scoring, resume tailoring, truth audit, CSV tracker
 - **v0.2** PDF generation via Playwright, per-job resume versioning, audit gate
 - **v0.3** React dashboard, FastAPI backend, safe URL scraping, preview/confirm
-- **v0.4 (current)** Proactive scraper on GCP VM, 4-source watchlist (Greenhouse / Lever / Ashby / HN), Bearer-token auth, sortable / filterable dashboard with star + bulk-archive + full-text search, `posted_at` capture from sources
-- **v0.5** Auto-tailor for high-fit discoveries + notification (email / Discord / Pushover)
-- **v0.6** Workday adapter for FAANG / big-tech postings (browser-rendered, per-company selectors)
+- **v0.4** Proactive scraper on GCP VM, multi-source watchlist (Greenhouse / Lever / Ashby / Workday / HN), Bearer-token auth, sortable / filterable dashboard with star + bulk-archive + full-text search, `posted_at` capture from sources
+- **v0.5 (current)** Cover-letter generation with audit-visible drafts, Discord notifications for high-fit roles, tracker backup/restore commands, and response-feedback fields for tracking outcomes
+- **v0.6** Semantic fit scoring with embeddings while preserving the explainable deterministic score
 - **v0.7** Browser form filling with Playwright (pause before submit)
 
 ## License

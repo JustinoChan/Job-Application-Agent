@@ -1,6 +1,6 @@
 [project]
 name = "job-application-agent"
-version = "0.3.0"
+version = "0.5.0"
 description = "CLI tool that tailors resumes to job descriptions using truthful source data"
 requires-python = ">=3.11"
 license = {text = "MIT"}

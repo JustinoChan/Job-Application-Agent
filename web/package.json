@@ -1,6 +1,6 @@
 {
   "name": "job-application-agent-web",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
