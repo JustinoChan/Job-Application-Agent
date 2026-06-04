@@ -65,4 +65,5 @@ data
 # Loom screening prep — local only
 presentation/
 jobs/tracker.backup-*.csv
+jobs/tracker.pre-restore-*.csv
 goal.txt
