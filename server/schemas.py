@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Literal
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 
 from src.models import AuditReport, FitScore, TrackerStatus
 
@@ -26,6 +26,10 @@ class TrackerEntryResponse(BaseModel):
     next_action: str | None = None
     starred: bool = False
     source: str | None = None
+    response_date: date | None = None
+    response_type: str | None = None
+    interview_stage: str | None = None
+    source_quality: int | None = Field(default=None, ge=1, le=5)
     date_updated: date
 
 
@@ -77,6 +81,10 @@ class ConfirmResponse(BaseModel):
 class StatusUpdateRequest(BaseModel):
     status: TrackerStatus
     notes: str | None = None
+    response_date: date | None = None
+    response_type: str | None = None
+    interview_stage: str | None = None
+    source_quality: int | None = Field(default=None, ge=1, le=5)
 
 
 class DashboardStatsResponse(BaseModel):
@@ -85,6 +93,8 @@ class DashboardStatsResponse(BaseModel):
     response_rate: float
     interview_rate: float
     offer_rate: float
+    response_count: int = 0
+    average_source_quality: float | None = None
 
 
 class ReloadConfigResponse(BaseModel):

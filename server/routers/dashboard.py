@@ -30,14 +30,34 @@ def dashboard_stats() -> DashboardStatsResponse:
             TrackerStatus.GHOSTED,
         ]
     )
+    responded_statuses = {
+        TrackerStatus.INTERVIEW,
+        TrackerStatus.ASSESSMENT,
+        TrackerStatus.OFFER,
+        TrackerStatus.REJECTED,
+    }
+    response_count = sum(
+        1 for entry in entries
+        if entry.response_date or entry.response_type or entry.status in responded_statuses
+    )
     interviews = counts[TrackerStatus.INTERVIEW.value] + counts[TrackerStatus.ASSESSMENT.value] + counts[TrackerStatus.OFFER.value]
     offers = counts[TrackerStatus.OFFER.value]
+    source_quality_values = [
+        entry.source_quality for entry in entries
+        if entry.source_quality is not None
+    ]
+    average_source_quality = (
+        round(sum(source_quality_values) / len(source_quality_values), 2)
+        if source_quality_values else None
+    )
 
     denominator = max(submitted_or_later, 1)
     return DashboardStatsResponse(
         total=total,
         status_counts=dict(counts),
-        response_rate=round(interviews / denominator, 3),
+        response_rate=round(response_count / denominator, 3),
         interview_rate=round(interviews / denominator, 3),
         offer_rate=round(offers / denominator, 3),
+        response_count=response_count,
+        average_source_quality=average_source_quality,
     )

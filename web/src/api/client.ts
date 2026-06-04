@@ -91,9 +91,19 @@ export async function confirmApplication(payload: {
 export async function updateStatus(
   jobId: string,
   status: TrackerStatus,
-  notes?: string
+  notes?: string,
+  feedback?: {
+    response_date?: string | null;
+    response_type?: string | null;
+    interview_stage?: string | null;
+    source_quality?: number | null;
+  }
 ): Promise<TrackerEntry> {
-  const response = await api.put<TrackerEntry>(`/applications/${jobId}/status`, { status, notes });
+  const response = await api.put<TrackerEntry>(`/applications/${jobId}/status`, {
+    status,
+    notes,
+    ...(feedback || {})
+  });
   return response.data;
 }
 

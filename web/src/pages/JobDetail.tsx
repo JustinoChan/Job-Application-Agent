@@ -52,6 +52,10 @@ export default function JobDetail() {
   const [audit, setAudit] = useState<AuditReportType | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [notes, setNotes] = useState("");
+  const [responseDate, setResponseDate] = useState("");
+  const [responseType, setResponseType] = useState("");
+  const [interviewStage, setInterviewStage] = useState("");
+  const [sourceQuality, setSourceQuality] = useState("");
   const [error, setError] = useState("");
   const [coverLetterVersions, setCoverLetterVersions] = useState<number[]>([]);
   const [selectedCoverVersion, setSelectedCoverVersion] = useState<number | null>(null);
@@ -79,6 +83,10 @@ export default function JobDetail() {
       .then((data) => {
         setEntry(data);
         setNotes(data.notes || "");
+        setResponseDate(data.response_date || "");
+        setResponseType(data.response_type || "");
+        setInterviewStage(data.interview_stage || "");
+        setSourceQuality(data.source_quality != null ? String(data.source_quality) : "");
         if (data.latest_resume_version) {
           getAudit(data.job_id, data.latest_resume_version).then(setAudit).catch(() => setAudit(null));
         } else {
@@ -103,7 +111,12 @@ export default function JobDetail() {
 
   async function saveStatus(status: TrackerStatus) {
     if (!entry) return;
-    const updated = await updateStatus(entry.job_id, status, notes);
+    const updated = await updateStatus(entry.job_id, status, notes, {
+      response_date: responseDate || null,
+      response_type: responseType || null,
+      interview_stage: interviewStage || null,
+      source_quality: sourceQuality ? Number(sourceQuality) : null,
+    });
     setEntry(updated);
   }
 
@@ -205,6 +218,56 @@ export default function JobDetail() {
           <div>
             <label>Notes</label>
             <input value={notes} onChange={(event) => setNotes(event.target.value)} onBlur={() => saveStatus(entry.status)} />
+          </div>
+          <div>
+            <label>Response date</label>
+            <input
+              type="date"
+              value={responseDate}
+              onChange={(event) => setResponseDate(event.target.value)}
+              onBlur={() => saveStatus(entry.status)}
+            />
+          </div>
+          <div>
+            <label>Response type</label>
+            <select
+              value={responseType}
+              onChange={(event) => setResponseType(event.target.value)}
+              onBlur={() => saveStatus(entry.status)}
+            >
+              <option value="">None yet</option>
+              <option value="recruiter_screen">Recruiter screen</option>
+              <option value="technical_screen">Technical screen</option>
+              <option value="assessment">Assessment</option>
+              <option value="onsite">Onsite</option>
+              <option value="offer">Offer</option>
+              <option value="rejection">Rejection</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Interview stage</label>
+            <input
+              value={interviewStage}
+              onChange={(event) => setInterviewStage(event.target.value)}
+              onBlur={() => saveStatus(entry.status)}
+              placeholder="e.g. recruiter, technical, final"
+            />
+          </div>
+          <div>
+            <label>Source quality</label>
+            <select
+              value={sourceQuality}
+              onChange={(event) => setSourceQuality(event.target.value)}
+              onBlur={() => saveStatus(entry.status)}
+            >
+              <option value="">Unrated</option>
+              <option value="1">1 - poor</option>
+              <option value="2">2</option>
+              <option value="3">3 - okay</option>
+              <option value="4">4</option>
+              <option value="5">5 - strong</option>
+            </select>
           </div>
         </div>
       </section>

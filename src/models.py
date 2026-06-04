@@ -246,4 +246,8 @@ class TrackerEntry(BaseModel):
     next_action: Optional[str] = None
     starred: bool = False
     source: Optional[str] = None
+    response_date: Optional[date] = None
+    response_type: Optional[str] = None
+    interview_stage: Optional[str] = None
+    source_quality: Optional[int] = None
     date_updated: date = Field(default_factory=date.today)

@@ -57,6 +57,49 @@ class TestTracker:
         retrieved = get_entry(tmp_tracker, "test-swe-20260506")
         assert retrieved.status == TrackerStatus.PREPARED
 
+    def test_update_feedback_fields(self, tmp_tracker):
+        entry = _make_entry()
+        add_entry(tmp_tracker, entry)
+        updated = update_status(
+            tmp_tracker,
+            "test-swe-20260506",
+            TrackerStatus.INTERVIEW,
+            response_date=date(2026, 6, 3),
+            response_date_set=True,
+            response_type="recruiter_screen",
+            response_type_set=True,
+            interview_stage="recruiter",
+            interview_stage_set=True,
+            source_quality=4,
+            source_quality_set=True,
+        )
+        assert updated is True
+        retrieved = get_entry(tmp_tracker, "test-swe-20260506")
+        assert retrieved.status == TrackerStatus.INTERVIEW
+        assert retrieved.response_date == date(2026, 6, 3)
+        assert retrieved.response_type == "recruiter_screen"
+        assert retrieved.interview_stage == "recruiter"
+        assert retrieved.source_quality == 4
+
+        update_status(
+            tmp_tracker,
+            "test-swe-20260506",
+            TrackerStatus.INTERVIEW,
+            response_date=None,
+            response_date_set=True,
+            response_type=None,
+            response_type_set=True,
+            interview_stage=None,
+            interview_stage_set=True,
+            source_quality=None,
+            source_quality_set=True,
+        )
+        retrieved = get_entry(tmp_tracker, "test-swe-20260506")
+        assert retrieved.response_date is None
+        assert retrieved.response_type is None
+        assert retrieved.interview_stage is None
+        assert retrieved.source_quality is None
+
     def test_update_nonexistent_returns_false(self, tmp_tracker):
         ensure_tracker_exists(tmp_tracker)
         result = update_status(tmp_tracker, "nonexistent", TrackerStatus.PREPARED)
@@ -80,6 +123,20 @@ class TestTracker:
         assert "google" in jid
         assert "software-engineer" in jid
         assert len(jid) <= 60
+
+    def test_migrates_feedback_columns(self, tmp_tracker):
+        tmp_tracker.write_text(
+            "job_id,date_added,company,role,status,date_updated\n"
+            "legacy,2026-05-06,LegacyCo,SWE,submitted,2026-05-06\n",
+            encoding="utf-8",
+        )
+
+        entry = get_entry(tmp_tracker, "legacy")
+
+        assert entry is not None
+        assert entry.response_date is None
+        assert entry.response_type is None
+        assert "response_date" in tmp_tracker.read_text(encoding="utf-8").splitlines()[0]
 
     def test_backup_and_restore_tracker(self, tmp_tracker, tmp_path):
         add_entry(tmp_tracker, _make_entry("job-a", "CompanyA", "SWE"))

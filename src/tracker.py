@@ -31,6 +31,10 @@ TRACKER_COLUMNS = [
     "next_action",
     "starred",
     "source",
+    "response_date",
+    "response_type",
+    "interview_stage",
+    "source_quality",
     "date_updated",
 ]
 
@@ -54,6 +58,10 @@ _COLUMN_DEFAULTS: dict[str, str] = {
     "posted_at": "",
     "location": "",
     "source": "",
+    "response_date": "",
+    "response_type": "",
+    "interview_stage": "",
+    "source_quality": "",
 }
 
 # Old scraper code wrote the source identifier (e.g. `hn:22665398`) into
@@ -155,7 +163,6 @@ def _normalize_rows(header: list[str], body: list[list[str]]) -> list[dict[str, 
             if cleaned != url_raw:
                 result["url"] = cleaned
         normalized.append(result)
-
     return normalized
 
 
@@ -292,6 +299,14 @@ def update_status(
     starred: bool | None = None,
     location: str | None = None,
     source: str | None = None,
+    response_date: date | None = None,
+    response_date_set: bool = False,
+    response_type: str | None = None,
+    response_type_set: bool = False,
+    interview_stage: str | None = None,
+    interview_stage_set: bool = False,
+    source_quality: int | None = None,
+    source_quality_set: bool = False,
 ) -> bool:
     with tracker_lock():
         if not tracker_path.exists():
@@ -324,6 +339,14 @@ def update_status(
                         row["location"] = location
                     if source is not None:
                         row["source"] = source
+                    if response_date_set:
+                        row["response_date"] = response_date.isoformat() if response_date else ""
+                    if response_type_set:
+                        row["response_type"] = response_type or ""
+                    if interview_stage_set:
+                        row["interview_stage"] = interview_stage or ""
+                    if source_quality_set:
+                        row["source_quality"] = str(source_quality) if source_quality is not None else ""
                     found = True
                 rows.append(row)
 
@@ -586,6 +609,10 @@ def _entry_to_row(entry: TrackerEntry) -> dict:
         "next_action": entry.next_action or "",
         "starred": "1" if entry.starred else "0",
         "source": entry.source or "",
+        "response_date": entry.response_date.isoformat() if entry.response_date else "",
+        "response_type": entry.response_type or "",
+        "interview_stage": entry.interview_stage or "",
+        "source_quality": str(entry.source_quality) if entry.source_quality is not None else "",
         "date_updated": entry.date_updated.isoformat(),
     }
 
@@ -595,6 +622,12 @@ def _row_to_entry(row: dict) -> TrackerEntry:
     ver = row.get("latest_resume_version", "")
     starred_raw = (row.get("starred") or "").strip().lower()
     posted_raw = (row.get("posted_at") or "").strip()
+    response_raw = (row.get("response_date") or "").strip()
+    source_quality_raw = (row.get("source_quality") or "").strip()
+    try:
+        source_quality = int(source_quality_raw) if source_quality_raw else None
+    except ValueError:
+        source_quality = None
     return TrackerEntry(
         job_id=row["job_id"],
         date_added=date.fromisoformat(row["date_added"]),
@@ -613,5 +646,9 @@ def _row_to_entry(row: dict) -> TrackerEntry:
         next_action=row.get("next_action") or None,
         starred=starred_raw in {"1", "true", "yes"},
         source=row.get("source") or None,
+        response_date=date.fromisoformat(response_raw) if response_raw else None,
+        response_type=row.get("response_type") or None,
+        interview_stage=row.get("interview_stage") or None,
+        source_quality=source_quality,
         date_updated=date.fromisoformat(row.get("date_updated", date.today().isoformat())),
     )

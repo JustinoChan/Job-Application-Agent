@@ -28,6 +28,10 @@ export interface TrackerEntry {
   next_action?: string | null;
   starred?: boolean;
   source?: string | null;
+  response_date?: string | null;
+  response_type?: string | null;
+  interview_stage?: string | null;
+  source_quality?: number | null;
   date_updated: string;
 }
 
@@ -77,6 +81,8 @@ export interface DashboardStats {
   response_rate: number;
   interview_rate: number;
   offer_rate: number;
+  response_count: number;
+  average_source_quality?: number | null;
 }
 
 export interface ScrapeResponse {

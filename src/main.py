@@ -348,6 +348,10 @@ def log(
     job_id: str = typer.Argument(help="Job ID to update"),
     new_status: str = typer.Argument(help="New status (found, prepared, reviewed, submitted, rejected, interview, assessment, offer, ghosted, archived)"),
     notes: Optional[str] = typer.Option(None, "--notes", "-n", help="Add notes"),
+    response_date: Optional[str] = typer.Option(None, "--response-date", help="Date you received a response, YYYY-MM-DD"),
+    response_type: Optional[str] = typer.Option(None, "--response-type", help="Response type, e.g. recruiter_screen, rejection, offer"),
+    interview_stage: Optional[str] = typer.Option(None, "--interview-stage", help="Current interview stage"),
+    source_quality: Optional[int] = typer.Option(None, "--source-quality", min=1, max=5, help="Source quality rating from 1-5"),
 ) -> None:
     """Update tracker status for a job application."""
     try:
@@ -357,8 +361,27 @@ def log(
         console.print(f"[red]Invalid status '{new_status}'. Valid: {valid}[/red]")
         raise typer.Exit(1)
 
+    parsed_response_date = None
+    if response_date:
+        try:
+            parsed_response_date = date.fromisoformat(response_date)
+        except ValueError:
+            console.print("[red]Invalid --response-date. Use YYYY-MM-DD.[/red]")
+            raise typer.Exit(1)
+
     found = tracker.update_status(
-        config.TRACKER_PATH, job_id, status_enum, notes=notes
+        config.TRACKER_PATH,
+        job_id,
+        status_enum,
+        notes=notes,
+        response_date=parsed_response_date,
+        response_date_set=response_date is not None,
+        response_type=response_type,
+        response_type_set=response_type is not None,
+        interview_stage=interview_stage,
+        interview_stage_set=interview_stage is not None,
+        source_quality=source_quality,
+        source_quality_set=source_quality is not None,
     )
     if found:
         console.print(f"[green]Updated {job_id} -> {new_status}[/green]")

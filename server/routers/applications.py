@@ -406,11 +406,20 @@ def delete_application(job_id: str) -> DeleteResponse:
 
 @router.put("/{job_id}/status", response_model=TrackerEntryResponse)
 def update_application_status(job_id: str, request: StatusUpdateRequest):
+    provided_fields = request.model_fields_set
     updated = tracker.update_status(
         config.TRACKER_PATH,
         job_id,
         request.status,
         notes=request.notes,
+        response_date=request.response_date,
+        response_date_set="response_date" in provided_fields,
+        response_type=request.response_type,
+        response_type_set="response_type" in provided_fields,
+        interview_stage=request.interview_stage,
+        interview_stage_set="interview_stage" in provided_fields,
+        source_quality=request.source_quality,
+        source_quality_set="source_quality" in provided_fields,
     )
     if not updated:
         raise HTTPException(status_code=404, detail="Application not found.")
