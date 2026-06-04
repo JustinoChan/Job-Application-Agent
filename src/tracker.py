@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from rich.console import Console
@@ -116,6 +116,16 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
     if header_current and not needs_data_cleanup:
         return
 
+    normalized = _normalize_rows(header, body)
+
+    with open(tracker_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
+        writer.writeheader()
+        for row in normalized:
+            writer.writerow(row)
+
+
+def _normalize_rows(header: list[str], body: list[list[str]]) -> list[dict[str, str]]:
     normalized: list[dict[str, str]] = []
     for raw_row in body:
         if not raw_row:
@@ -146,11 +156,7 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
                 result["url"] = cleaned
         normalized.append(result)
 
-    with open(tracker_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
-        writer.writeheader()
-        for row in normalized:
-            writer.writerow(row)
+    return normalized
 
 
 def _body_needs_cleanup(header: list[str], body: list[list[str]]) -> bool:
@@ -213,6 +219,64 @@ def add_entry(tracker_path: Path, entry: TrackerEntry) -> bool:
             writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
             writer.writerow(_entry_to_row(entry))
         return True
+
+
+def backup_tracker(tracker_path: Path, backup_dir: Path | None = None, prefix: str = "tracker.backup") -> Path:
+    """Create a timestamped CSV backup of the tracker and return its path."""
+    with tracker_lock():
+        _ensure_tracker_exists_unlocked(tracker_path)
+        _migrate_if_needed_unlocked(tracker_path)
+        return _backup_tracker_unlocked(tracker_path, backup_dir, prefix)
+
+
+def restore_tracker(
+    tracker_path: Path,
+    backup_path: Path,
+    *,
+    create_pre_restore_backup: bool = True,
+) -> Path | None:
+    """Replace tracker.csv with a validated backup CSV.
+
+    Returns the pre-restore backup path when one was created.
+    """
+    with tracker_lock():
+        if not backup_path.exists():
+            raise FileNotFoundError(f"Backup file not found: {backup_path}")
+        with open(backup_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            try:
+                header = next(reader)
+            except StopIteration as exc:
+                raise ValueError(f"Backup file is empty: {backup_path}") from exc
+            if "job_id" not in header:
+                raise ValueError(f"Backup file does not look like a tracker CSV: {backup_path}")
+            body = list(reader)
+
+        pre_restore_path = None
+        if create_pre_restore_backup and tracker_path.exists():
+            _migrate_if_needed_unlocked(tracker_path)
+            pre_restore_path = _backup_tracker_unlocked(
+                tracker_path,
+                tracker_path.parent,
+                "tracker.pre-restore",
+            )
+
+        tracker_path.parent.mkdir(parents=True, exist_ok=True)
+        normalized = _normalize_rows(header, body)
+        with open(tracker_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=TRACKER_COLUMNS)
+            writer.writeheader()
+            writer.writerows(normalized)
+        return pre_restore_path
+
+
+def _backup_tracker_unlocked(tracker_path: Path, backup_dir: Path | None, prefix: str) -> Path:
+    backup_root = backup_dir or tracker_path.parent
+    backup_root.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_path = backup_root / f"{prefix}-{stamp}.csv"
+    backup_path.write_bytes(tracker_path.read_bytes())
+    return backup_path
 
 
 def update_status(

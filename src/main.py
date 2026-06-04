@@ -366,6 +366,35 @@ def log(
         console.print(f"[red]Job ID '{job_id}' not found in tracker.[/red]")
 
 
+@app.command(name="backup-tracker")
+def backup_tracker_cmd(
+    backup_dir: Optional[Path] = typer.Option(None, "--dir", help="Directory for the backup CSV (default: jobs/)"),
+) -> None:
+    """Create a timestamped backup of jobs/tracker.csv."""
+    path = tracker.backup_tracker(config.TRACKER_PATH, backup_dir=backup_dir)
+    console.print(f"[green]Tracker backup saved:[/green] {path}")
+
+
+@app.command(name="restore-tracker")
+def restore_tracker_cmd(
+    backup_path: Path = typer.Argument(help="Path to a tracker backup CSV"),
+    no_pre_restore_backup: bool = typer.Option(False, "--no-pre-restore-backup", help="Do not save the current tracker before restoring"),
+) -> None:
+    """Restore jobs/tracker.csv from a backup CSV."""
+    try:
+        pre_restore = tracker.restore_tracker(
+            config.TRACKER_PATH,
+            backup_path,
+            create_pre_restore_backup=not no_pre_restore_backup,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1)
+    if pre_restore:
+        console.print(f"[yellow]Current tracker backed up first:[/yellow] {pre_restore}")
+    console.print(f"[green]Tracker restored from:[/green] {backup_path}")
+
+
 @app.command()
 def status(
     filter_status: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter by status"),

@@ -9,10 +9,12 @@ import pytest
 from src.models import TrackerEntry, TrackerStatus
 from src.tracker import (
     add_entry,
+    backup_tracker,
     ensure_tracker_exists,
     generate_job_id,
     get_entry,
     list_entries,
+    restore_tracker,
     update_status,
 )
 
@@ -78,3 +80,19 @@ class TestTracker:
         assert "google" in jid
         assert "software-engineer" in jid
         assert len(jid) <= 60
+
+    def test_backup_and_restore_tracker(self, tmp_tracker, tmp_path):
+        add_entry(tmp_tracker, _make_entry("job-a", "CompanyA", "SWE"))
+        backup = backup_tracker(tmp_tracker, backup_dir=tmp_path)
+        assert backup.exists()
+
+        add_entry(tmp_tracker, _make_entry("job-b", "CompanyB", "SWE"))
+        assert len(list_entries(tmp_tracker)) == 2
+
+        pre_restore = restore_tracker(tmp_tracker, backup)
+
+        assert pre_restore is not None
+        assert pre_restore.exists()
+        entries = list_entries(tmp_tracker)
+        assert len(entries) == 1
+        assert entries[0].job_id == "job-a"
