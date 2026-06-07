@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { TrackerEntry } from "../api/types";
 
@@ -66,11 +66,29 @@ export default function ApplicationTable({
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState("");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 50;
 
   const sorted = useMemo(() => {
     const items = [...applications];
     items.sort((a, b) => compare(a, b, sortKey, sortDir));
     return items;
+  }, [applications, sortKey, sortDir]);
+
+  // Only render one page of rows at a time. Painting thousands of rows x ~17
+  // columns at once chokes the browser's table layout (columns fail to render);
+  // paginating keeps the DOM small so every column shows at any filter level.
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const clampedPage = Math.min(page, pageCount - 1);
+  const pageStart = clampedPage * PAGE_SIZE;
+  const paged = useMemo(
+    () => sorted.slice(pageStart, pageStart + PAGE_SIZE),
+    [sorted, pageStart],
+  );
+
+  // Reset to the first page whenever the underlying set or sort changes.
+  useEffect(() => {
+    setPage(0);
   }, [applications, sortKey, sortDir]);
 
   function handleSort(key: SortKey) {
@@ -152,7 +170,7 @@ export default function ApplicationTable({
           </tr>
         </thead>
         <tbody>
-          {sorted.map((app, idx) => (
+          {paged.map((app, idx) => (
             <>
               <tr key={app.job_id} className={selectedIds.has(app.job_id) ? "selected" : ""}>
                 <td className="col-check">
@@ -162,7 +180,7 @@ export default function ApplicationTable({
                     onChange={() => toggleRow(app.job_id)}
                   />
                 </td>
-                <td className="col-num">{idx + 1}</td>
+                <td className="col-num">{pageStart + idx + 1}</td>
                 <td>
                   <button
                     type="button"
@@ -250,6 +268,30 @@ export default function ApplicationTable({
           ))}
         </tbody>
       </table>
+      {sorted.length > PAGE_SIZE && (
+        <div className="pagination">
+          <span className="pagination-info">
+            Showing {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, sorted.length)} of {sorted.length}
+          </span>
+          <div className="pagination-controls">
+            <button
+              className="secondary"
+              disabled={clampedPage === 0}
+              onClick={() => setPage(clampedPage - 1)}
+            >
+              ‹ Prev
+            </button>
+            <span className="pagination-page">Page {clampedPage + 1} of {pageCount}</span>
+            <button
+              className="secondary"
+              disabled={clampedPage >= pageCount - 1}
+              onClick={() => setPage(clampedPage + 1)}
+            >
+              Next ›
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

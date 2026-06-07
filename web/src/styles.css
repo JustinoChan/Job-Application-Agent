@@ -390,6 +390,34 @@ label {
   box-shadow: var(--shadow-sm);
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border-light);
+}
+.pagination-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pagination-page {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.pagination button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .application-table {
   border-collapse: collapse;
   width: 100%;
