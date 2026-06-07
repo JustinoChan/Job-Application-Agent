@@ -187,7 +187,7 @@ label {
 
 .page-shell {
   padding: 24px;
-  max-width: 1440px;
+  max-width: 1760px;
   margin: 0 auto;
 }
 
@@ -340,9 +340,10 @@ label {
 .dashboard-grid {
   display: grid;
   gap: 20px;
-  /* Single column so the job table gets the full page width and its
-     columns aren't clipped by a side panel. The chart sits below it. */
-  grid-template-columns: minmax(0, 1fr);
+  /* Table on the left (gets the bulk of the now-wider page), chart panel on
+     the right. The table paginates, so it no longer chokes on row count and
+     its columns fit alongside the side panel. */
+  grid-template-columns: minmax(0, 1fr) 300px;
   min-height: calc(100vh - 200px);
 }
 
@@ -351,15 +352,9 @@ label {
 }
 
 .sidebar {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   align-content: start;
   gap: 16px;
-}
-
-.sidebar .side-card {
-  flex: 1 1 320px;
-  max-width: 460px;
 }
 
 .side-card,
