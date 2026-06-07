@@ -26,9 +26,9 @@ def _load_config() -> None:
         return
     _WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "").strip() or None
     try:
-        _FIT_THRESHOLD = float(os.getenv("NOTIFICATION_FIT_THRESHOLD", "0.5"))
+        _FIT_THRESHOLD = float(os.getenv("NOTIFICATION_FIT_THRESHOLD", "0.75"))
     except ValueError:
-        _FIT_THRESHOLD = 0.5
+        _FIT_THRESHOLD = 0.75
     _PING_USER_ID = os.getenv("DISCORD_PING_USER_ID", "").strip() or None
     _LOADED = True
 
