@@ -5,26 +5,37 @@ A truth-constrained, proactive job-hunting agent. It scrapes new job postings on
 ## How it works
 
 ```
-Job posting (scraped or pasted)
+                         ┌──────── proactive, on a schedule (every 4h) ────────┐
+ Job boards (Greenhouse, Lever, Ashby, Workday, HN "Who is hiring")
+        │  scraper (GCP VM, systemd timer)
+        ▼
+   POST /api/applications/discover        ← idempotent on job_id
         │
         ▼
-   Job Parser ──► extract company, title, skills, requirements
+   Job Parser (deterministic)  ──►  extract company/title, sections,
+        │                            requirements, keywords, level
+        ▼
+   Fit Scorer (deterministic)  ──►  one explainable % + recommendation
+        │                            (skip if below threshold)
+        ▼
+   Tracker (CSV) records it as "found"   ──►  Discord ping if high-fit
+        │
+        ▼   ============ MANUAL REVIEW at the dashboard ============
+        ▼   (on demand — I decide which jobs are worth it)
+        ▼
+   Resume Tailor (code) ─► select & reorder my approved facts
         │
         ▼
-   Fit Scorer ──► compatibility % vs your profile + project bank
-        │
-        ▼   (on demand — manual review at the dashboard)
-        ▼
-  Resume Tailor ──► select relevant projects, reorder skills
+   Claim Auditor (code) ─► verify every bullet vs YAML; FAIL blocks the PDF
         │
         ▼
-  Claim Auditor ──► verify every bullet against YAML source data
+   Cover Letter (LLM writes) ─► Claim Auditor (code) re-checks every sentence
         │
         ▼
-  PDF Renderer ──► HTML via Jinja2, PDF via Playwright Chromium
+   PDF Renderer (Jinja2 → Playwright/Chromium)
         │
         ▼
-  Output: versioned resume (MD + HTML + PDF) + cover letter + audit report
+   Versioned artifacts: resume + cover letter (md / html / pdf / meta / audit)
 ```
 
 The key constraint: the resume tailor selects and reorders from approved facts in [data/project_bank.yaml](data/project_bank.yaml). It cannot invent companies, titles, internships, metrics, or technologies. Cover letters are LLM-written but pass a separate audit that flags any tech term not in your allowlist.
