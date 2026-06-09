@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 from src import config
@@ -47,6 +48,7 @@ def tailor_resume(
             selected_facts=facts,
         ))
 
+    tailored_projects.sort(key=_project_date_sort_key, reverse=True)
     reordered_skills = _reorder_skills(profile.skills, job.extracted_keywords, rules)
 
     return TailoredResume(
@@ -59,6 +61,37 @@ def tailor_resume(
 
 def _select_projects(fit_score: FitScore, config: MasterResume) -> list[str]:
     return [ps.project_id for ps in fit_score.project_scores[: config.max_projects]]
+
+
+def _project_date_sort_key(project: TailoredProject) -> tuple[int, int, int, int]:
+    if not project.date_range:
+        return (0, 0, 0, 0)
+
+    start_text, separator, end_text = project.date_range.partition(" - ")
+    if not separator:
+        start_text = end_text = project.date_range
+
+    start_year, start_month = _parse_project_date(start_text)
+    if end_text.strip().lower() == "present":
+        end_year, end_month = (9999, 12)
+    else:
+        end_year, end_month = _parse_project_date(end_text)
+
+    return (end_year, end_month, start_year, start_month)
+
+
+def _parse_project_date(value: str) -> tuple[int, int]:
+    cleaned = value.strip()
+    for date_format in ("%b %Y", "%B %Y"):
+        try:
+            parsed = datetime.strptime(cleaned, date_format)
+            return (parsed.year, parsed.month)
+        except ValueError:
+            continue
+
+    if cleaned.isdigit() and len(cleaned) == 4:
+        return (int(cleaned), 1)
+    return (0, 0)
 
 
 def _select_facts_for_project(
