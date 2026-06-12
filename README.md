@@ -1,6 +1,6 @@
 # Job Application Agent
 
-A truth-constrained, proactive job-hunting agent. It scrapes new job postings on a schedule, scores each one against your real skills and projects, and only when you ask does it generate a tailored resume and cover letter — with every claim audited against source-of-truth YAML so the system literally cannot fabricate experience.
+A truth-constrained, proactive personal job-hunting agent. It scrapes new job postings on a schedule, scores each one against your real skills and projects, and only when you ask does it generate a tailored resume and cover letter — with every claim audited against source-of-truth YAML so the system literally cannot fabricate experience.
 
 ## How it works
 
