@@ -249,7 +249,7 @@ sudo systemctl enable --now scraper.timer
 
 ## Running the system
 
-There are three things that need to be live at the same time for the scraper → tracker → dashboard pipeline to work end-to-end.
+The end-to-end scraper → tracker → dashboard pipeline spans three running services plus the hosted dashboard.
 
 ### 1. Local machine — FastAPI backend
 
