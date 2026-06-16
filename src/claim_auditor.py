@@ -1,3 +1,4 @@
+"""Claim auditor (the truth gate): verifies every resume bullet against source facts + hard constraints; a FAIL blocks rendering."""
 from __future__ import annotations
 
 import difflib

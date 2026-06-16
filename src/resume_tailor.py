@@ -1,3 +1,6 @@
+"""Tailors a resume to a job posting by selecting the most relevant projects,
+facts, skills, and tech stack items, then renders and saves the result."""
+
 from __future__ import annotations
 
 from datetime import datetime

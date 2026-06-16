@@ -1,3 +1,4 @@
+"""Pydantic data models — the typed contracts for source-of-truth YAML and every pipeline output."""
 from __future__ import annotations
 
 from datetime import date, datetime

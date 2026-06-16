@@ -1,3 +1,4 @@
+"""Configuration: project file paths, YAML config loaders, and versioned output-path helpers."""
 import re
 from pathlib import Path
 

@@ -1,3 +1,4 @@
+"""Fit scorer: deterministically scores a job posting against the profile + projects (skills, project relevance, nice-to-haves)."""
 from __future__ import annotations
 
 import re
