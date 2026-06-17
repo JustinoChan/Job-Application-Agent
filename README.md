@@ -130,7 +130,7 @@ job-application-agent/
     api_client.py                # POSTs to /discover
     sources/
       __init__.py                # SourceFn registry + WatchlistEntry
-      greenhouse.py / lever.py / ashby.py / hn_who_is_hiring.py
+      greenhouse.py / lever.py / ashby.py / workday.py / hn_who_is_hiring.py
       _html.py / _date.py / _match.py
     deploy/
       scraper.service            # systemd one-shot unit
