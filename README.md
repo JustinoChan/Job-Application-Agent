@@ -381,4 +381,4 @@ python -m pytest tests/ -v --basetemp .pytest_tmp_run
 
 ## License
 
-MIT
+MIT 2026
