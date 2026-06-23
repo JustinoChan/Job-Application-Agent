@@ -1,30 +1,41 @@
 # Job Application Agent
 
-A truth-constrained, proactive job-hunting agent. It scrapes new job postings on a schedule, scores each one against your real skills and projects, and only when you ask does it generate a tailored resume and cover letter — with every claim audited against source-of-truth YAML so the system literally cannot fabricate experience.
+A truth-constrained, proactive personal job-hunting agent. It scrapes new job postings on a schedule, scores each one against your real skills and projects, and only when you ask does it generate a tailored resume and cover letter — with every claim audited against source-of-truth YAML so the system literally cannot fabricate experience.
 
 ## How it works
 
 ```
-Job posting (scraped or pasted)
+                         ┌──────── proactive, on a schedule (every 4h) ────────┐
+ Job boards (Greenhouse, Lever, Ashby, Workday, HN "Who is hiring")
+        │  scraper (GCP VM, systemd timer)
+        ▼
+   POST /api/applications/discover        ← idempotent on job_id
         │
         ▼
-   Job Parser ──► extract company, title, skills, requirements
+   Job Parser (deterministic)  ──►  extract company/title, sections,
+        │                            requirements, keywords, level
+        ▼
+   Fit Scorer (deterministic)  ──►  one explainable % + recommendation
+        │                            (skip if below threshold)
+        ▼
+   Tracker (CSV) records it as "found"   ──►  Discord ping if high-fit
+        │
+        ▼   ============ MANUAL REVIEW at the dashboard ============
+        ▼   (on demand — I decide which jobs are worth it)
+        ▼
+   Resume Tailor (code) ─► select & reorder my approved facts
         │
         ▼
-   Fit Scorer ──► compatibility % vs your profile + project bank
-        │
-        ▼   (on demand — manual review at the dashboard)
-        ▼
-  Resume Tailor ──► select relevant projects, reorder skills
+   Claim Auditor (code) ─► verify every bullet vs YAML; FAIL blocks the PDF
         │
         ▼
-  Claim Auditor ──► verify every bullet against YAML source data
+   Cover Letter (LLM writes) ─► Claim Auditor (code) re-checks every sentence
         │
         ▼
-  PDF Renderer ──► HTML via Jinja2, PDF via Playwright Chromium
+   PDF Renderer (Jinja2 → Playwright/Chromium)
         │
         ▼
-  Output: versioned resume (MD + HTML + PDF) + cover letter + audit report
+   Versioned artifacts: resume + cover letter (md / html / pdf / meta / audit)
 ```
 
 The key constraint: the resume tailor selects and reorders from approved facts in [data/project_bank.yaml](data/project_bank.yaml). It cannot invent companies, titles, internships, metrics, or technologies. Cover letters are LLM-written but pass a separate audit that flags any tech term not in your allowlist.
@@ -119,7 +130,7 @@ job-application-agent/
     api_client.py                # POSTs to /discover
     sources/
       __init__.py                # SourceFn registry + WatchlistEntry
-      greenhouse.py / lever.py / ashby.py / hn_who_is_hiring.py
+      greenhouse.py / lever.py / ashby.py / workday.py / hn_who_is_hiring.py
       _html.py / _date.py / _match.py
     deploy/
       scraper.service            # systemd one-shot unit
@@ -238,7 +249,7 @@ sudo systemctl enable --now scraper.timer
 
 ## Running the system
 
-There are three things that need to be live at the same time for the scraper → tracker → dashboard pipeline to work end-to-end.
+The end-to-end scraper → tracker → dashboard pipeline spans three running services plus the hosted dashboard.
 
 ### 1. Local machine — FastAPI backend
 
@@ -370,4 +381,4 @@ python -m pytest tests/ -v --basetemp .pytest_tmp_run
 
 ## License
 
-MIT
+MIT 2026

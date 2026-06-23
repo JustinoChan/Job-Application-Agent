@@ -1,3 +1,4 @@
+"""Job scraper: safely fetches a posting URL (size/redirect limits + private-IP guards) and optionally uses the LLM to clean its HTML into text."""
 from __future__ import annotations
 
 import ipaddress

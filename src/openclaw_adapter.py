@@ -1,3 +1,4 @@
+"""OpenClaw adapter: async subprocess bridge to the local LLM gateway (JSON in/out, timeouts, error handling)."""
 from __future__ import annotations
 
 import asyncio

@@ -105,6 +105,23 @@ class TestTracker:
         result = update_status(tmp_tracker, "nonexistent", TrackerStatus.PREPARED)
         assert result is False
 
+    def test_reads_and_updates_utf8_bom_tracker(self, tmp_tracker):
+        tmp_tracker.write_text(
+            "job_id,date_added,company,role,status,date_updated\n"
+            "bom-job,2026-06-11,ExampleCo,Engineer,submitted,2026-06-11\n",
+            encoding="utf-8-sig",
+        )
+
+        entry = get_entry(tmp_tracker, "bom-job")
+        assert entry is not None
+        assert entry.job_id == "bom-job"
+
+        updated = update_status(
+            tmp_tracker, "bom-job", TrackerStatus.INTERVIEW
+        )
+        assert updated is True
+        assert get_entry(tmp_tracker, "bom-job").status == TrackerStatus.INTERVIEW
+
     def test_list_entries_filter(self, tmp_tracker):
         add_entry(tmp_tracker, _make_entry("job-a", "CompanyA", "SWE"))
         add_entry(tmp_tracker, _make_entry("job-b", "CompanyB", "SWE"))

@@ -1,3 +1,4 @@
+"""Deterministic job-posting parser: raw text -> structured JobPosting (company/title, sections, keywords, level)."""
 from __future__ import annotations
 
 import re

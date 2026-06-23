@@ -1,3 +1,4 @@
+"""PDF renderer: fills Jinja2 HTML templates and prints them to PDF via headless Chromium (Playwright)."""
 from __future__ import annotations
 
 from datetime import date

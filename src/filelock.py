@@ -1,3 +1,4 @@
+"""Cross-platform advisory file locks for the tracker and version directories (prevents concurrent-write corruption)."""
 from __future__ import annotations
 
 from contextlib import contextmanager

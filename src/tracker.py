@@ -13,6 +13,8 @@ from src.models import TrackerEntry, TrackerStatus
 
 console = Console()
 
+TRACKER_READ_ENCODING = "utf-8-sig"
+
 TRACKER_COLUMNS = [
     "job_id",
     "date_added",
@@ -111,7 +113,7 @@ def _migrate_if_needed_unlocked(tracker_path: Path) -> None:
     """
     if not tracker_path.exists():
         return
-    with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+    with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
         reader = csv.reader(f)
         try:
             header = next(reader)
@@ -218,7 +220,7 @@ def add_entry(tracker_path: Path, entry: TrackerEntry) -> bool:
     with tracker_lock():
         _ensure_tracker_exists_unlocked(tracker_path)
         _migrate_if_needed_unlocked(tracker_path)
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             existing = {row["job_id"] for row in csv.DictReader(f)}
         if entry.job_id in existing:
             return False
@@ -249,7 +251,7 @@ def restore_tracker(
     with tracker_lock():
         if not backup_path.exists():
             raise FileNotFoundError(f"Backup file not found: {backup_path}")
-        with open(backup_path, "r", newline="", encoding="utf-8") as f:
+        with open(backup_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.reader(f)
             try:
                 header = next(reader)
@@ -315,7 +317,7 @@ def update_status(
 
         rows: list[dict] = []
         found = False
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row["job_id"] == job_id:
@@ -375,7 +377,7 @@ def bulk_update_status(
         rows: list[dict] = []
         updated = 0
         today = date.today().isoformat()
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row["job_id"] in target:
@@ -425,7 +427,7 @@ def archive_stale_discoveries(
         archived = 0
         today = date.today().isoformat()
 
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 status = TrackerStatus(row["status"])
@@ -468,7 +470,7 @@ def job_id_exists(tracker_path: Path, job_id: str) -> bool:
         if not tracker_path.exists():
             return False
         _migrate_if_needed_unlocked(tracker_path)
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row["job_id"] == job_id:
@@ -481,7 +483,7 @@ def get_entry(tracker_path: Path, job_id: str) -> TrackerEntry | None:
         if not tracker_path.exists():
             return None
         _migrate_if_needed_unlocked(tracker_path)
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row["job_id"] == job_id:
@@ -496,7 +498,7 @@ def delete_entry(tracker_path: Path, job_id: str) -> bool:
         _migrate_if_needed_unlocked(tracker_path)
         rows: list[dict] = []
         found = False
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row["job_id"] == job_id:
@@ -517,7 +519,7 @@ def get_latest_entry(tracker_path: Path) -> TrackerEntry | None:
             return None
         _migrate_if_needed_unlocked(tracker_path)
         last_row = None
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 last_row = row
@@ -534,7 +536,7 @@ def list_entries(
             return []
         _migrate_if_needed_unlocked(tracker_path)
         entries: list[TrackerEntry] = []
-        with open(tracker_path, "r", newline="", encoding="utf-8") as f:
+        with open(tracker_path, "r", newline="", encoding=TRACKER_READ_ENCODING) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 entry = _row_to_entry(row)

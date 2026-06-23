@@ -1,3 +1,4 @@
+"""Pipeline orchestration shared by the CLI and API: preview (in-memory) and confirm (audit-gate, then persist)."""
 from __future__ import annotations
 
 from datetime import date

@@ -1,3 +1,4 @@
+"""Cover letter: LLM-written prose (via OpenClaw) constrained to approved facts, then a deterministic per-sentence audit."""
 from __future__ import annotations
 
 import json

@@ -1,3 +1,4 @@
+"""Typer CLI: defines all ``python -m src`` commands (pipeline, render-pdf, cover-letter, tracker, ...)."""
 from __future__ import annotations
 
 import asyncio
